@@ -1,108 +1,144 @@
---Celadon Gleam Clustar
+--Quarkluon Anti-Green
 function c26012009.initial_effect(c)
 	c:EnableReviveLimit()
 	Link.AddProcedure(c,c26012009.matfilter,1,1)
-	--special summon
+	--Extra Link Material
+	local e0=Effect.CreateEffect(c)
+	e0:SetDescription(aux.Stringid(26012009,0))
+	e0:SetType(EFFECT_TYPE_FIELD)
+	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_IGNORE_IMMUNE)
+	e0:SetCode(EFFECT_SPSUMMON_PROC)
+	e0:SetRange(LOCATION_EXTRA)
+	e0:SetCondition(c26012009.plinkcon)
+	e0:SetTarget(c26012009.plinktg)
+	e0:SetOperation(c26012009.plinkop)
+	e0:SetValue(SUMMON_TYPE_LINK)
+	c:RegisterEffect(e0)
+	aux.GlobalCheck(c26012009,function()
+		c26012009[0]=false
+		c26012009[1]=false
+		local ge1=Effect.CreateEffect(c)
+		ge1:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+		ge1:SetCode(EVENT_DESTROYED)
+		ge1:SetOperation(c26012009.checkop)
+		Duel.RegisterEffect(ge1,0)
+		aux.AddValuesReset(function()
+			c26012009[0]=false
+			c26012009[1]=false
+		end)
+	end)
+	--indestructable
 	local e1=Effect.CreateEffect(c)
-	e1:SetDescription(aux.Stringid(26012009,0))
-	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
-	e1:SetType(EFFECT_TYPE_IGNITION)
+	e1:SetProperty(EFFECT_FLAG_SET_AVAILABLE)
+	e1:SetType(EFFECT_TYPE_FIELD)
+	e1:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
 	e1:SetRange(LOCATION_MZONE)
-	e1:SetCountLimit(1,26012009)
-	e1:SetTarget(c26012009.target)
-	e1:SetOperation(c26012009.operation)
-	c:RegisterEffect(e1)
-	--attach
+	e1:SetTargetRange(LOCATION_MZONE,LOCATION_MZONE)
+	e1:SetTarget(c26012009.indtg)
+	e1:SetValue(1)
+	--c:RegisterEffect(e1)
+	--attach Red Quarky
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(26012009,1))
 	e2:SetType(EFFECT_TYPE_IGNITION)
-	e2:SetProperty(EFFECT_FLAG_CARD_TARGET)
 	e2:SetRange(LOCATION_MZONE)
-	e2:SetCountLimit(1,26012009)
-	e2:SetCost(c26012009.matcost)
-	e2:SetTarget(c26012009.mattg)
-	e2:SetOperation(c26012009.matop)
-	c:RegisterEffect(e2)
-	local e2b=e2:Clone()
-	e2b:SetDescription(aux.Stringid(26012009,2))
-	e2b:SetType(EFFECT_TYPE_QUICK_O)
-	e2b:SetCode(EVENT_FREE_CHAIN)
-	e2b:SetCost(c26012009.qcost)
-	c:RegisterEffect(e2b)
+	e2:SetCondition(c26012009.attcon)
+	e2:SetTarget(c26012009.atttg)
+	e2:SetOperation(c26012009.attop)
+		--linking
+		local el2=Effect.CreateEffect(c)
+		el2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_GRANT)
+		el2:SetRange(LOCATION_MZONE)
+		el2:SetTargetRange(LOCATION_MZONE,0)
+		el2:SetTarget(c26012009.eftg)
+		el2:SetLabelObject(e2)
+		c:RegisterEffect(el2,false,REGISTER_FLAG_DETACH_XMAT)
+	--xyz material
+	local ex2=e2:Clone()
+	ex2:SetType(EFFECT_TYPE_XMATERIAL+EFFECT_TYPE_IGNITION)
+	c:RegisterEffect(ex2,false,REGISTER_FLAG_DETACH_XMAT)
 end
-function c26012009.matfilter(c,lc,sumtype,tp)
-	return (c:GetLevel()==1 or c:GetRank()==1) --and c:GetAttribute(ATTRIBUTE_WIND)
-end 
-function c26012009.filter(c,e,tp,zone,op)
-	return (op==false and c:GetLevel()==1 or c:IsCode(26012003))
-	and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP,tp,zone) 
+function c26012009.matfilter(c,scard,sumtype,tp)
+	return c:IsCode(26012003)
 end
-function c26012009.target(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then
-		local zone=e:GetHandler():GetLinkedZone(tp)
-		return zone~=0 and (Duel.IsExistingMatchingCard(c26012009.filter,tp,LOCATION_HAND,0,1,nil,e,tp,zone,false) or Duel.IsExistingMatchingCard(c26012009.filter,tp,LOCATION_GRAVE,0,1,nil,e,tp,zone,true))
-	end
-	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_HAND)
-end
-function c26012009.operation(e,tp,eg,ep,ev,re,r,rp)
-	local zone=e:GetHandler():GetLinkedZone(tp)
-	if zone==0 then return end
-	local g1=Duel.GetMatchingGroup(c26012009.filter,tp,LOCATION_HAND,0,nil,e,tp,zone,false)
-	local g2=Duel.GetMatchingGroup(aux.NecroValleyFilter(c26012009.filter),tp,LOCATION_GRAVE,0,nil,e,tp,zone,true)
-	g1:Merge(g2)
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
-	local g=g1:Select(tp,1,1,nil)
-	if #g>0 then
-		Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP,zone)
-	end
-end
-function c26012009.Gfilter(c)
-	return c:IsCode(26012003) and c:IsDiscardable()
-end
-function c26012009.matcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.IsExistingMatchingCard(Card.IsDiscardable,tp,LOCATION_HAND,0,1,nil) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DISCARD)
-	local g=Duel.SelectMatchingCard(tp,Card.IsDiscardable,tp,LOCATION_HAND,0,1,1,nil)
-	e:SetLabelObject(g:GetFirst())
-	Duel.SendtoGrave(g,REASON_COST+REASON_DISCARD)
-end
-function c26012009.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.IsExistingMatchingCard(c26012009.Gfilter,tp,LOCATION_HAND,0,1,nil) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DISCARD)
-	local g=Duel.SelectMatchingCard(tp,c26012009.Gfilter,tp,LOCATION_HAND,0,1,1,nil)
-	e:SetLabelObject(g:GetFirst())
-	Duel.SendtoGrave(g,REASON_COST+REASON_DISCARD)
-end
-function c26012009.xfilter(c,e)
-	return c:IsFaceup() and c:IsType(TYPE_XYZ) and c:GetRank()==1 and not c:IsImmuneToEffect(e)
-end
-function c26012009.ovfilter(c,e)
-	return c:GetLevel()==1 and not c:IsImmuneToEffect(e)
-end
-function c26012009.mattg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	local c=e:GetHandler()
-	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and c26012009.ovfilter(chkc,e) end
-	if chk==0 then return Duel.IsExistingTarget(c26012009.ovfilter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,nil,e) and c:GetLinkedGroup():IsExists(c26012009.xfilter,1,nil,e) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_XMATERIAL)
-	local g1=Duel.SelectTarget(tp,c26012009.ovfilter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,1,nil,e)
-	if e:GetLabelObject():IsCode(26012001) then
-		Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(26012001,1))
-		local g2=Duel.SelectTarget(tp,nil,tp,0,LOCATION_ONFIELD,0,1,g1:GetFirst())
-		g1:Merge(g2)
-	end
-	if e:GetLabelObject():IsCode(26012002) then
-		Duel.SetChainLimit(c26012002.chlimit)
-	end
-end
-function c26012009.matop(e,tp,eg,ep,ev,re,r,rp)
-	local c=e:GetHandler()
-	local tg=Duel.GetChainInfo(0,CHAININFO_TARGET_CARDS)
-	local xg=c:GetLinkedGroup()
-	if c:IsRelateToEffect(e) and #tg>0 and xg:IsExists(c26012009.xfilter,1,nil,e) then
-		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_XMATERIAL)
-		local sg=xg:Select(tp,1,1,nil)
-		if #sg>0 then
-			Duel.Overlay(sg:GetFirst(),tg)
+function c26012009.checkop(e,tp,eg,ep,ev,re,r,rp)
+	local tc=eg:GetFirst()
+	for tc in aux.Next(eg) do
+		local pos=tc:GetPosition()
+		if tc:IsCode(26012003) and tc:IsPreviousPosition(POS_FACEUP)
+			and tc:GetControler()==tc:GetPreviousControler() then
+			c26012009[tc:GetControler()]=true
 		end
+	end
+end
+function c26012009.plfilter(c,lc,tp)
+	return c:IsType(TYPE_MONSTER) and c:IsSetCard(0x612) and (c:IsFaceup() or not c:IsOnField())
+end
+function c26012009.plinkcon(e,c,must,g,min,max)
+	if c==nil then return true end
+	local tp=c:GetControler()
+	local g=Duel.GetMatchingGroup(c26012009.plfilter,tp,LOCATION_HAND,0,nil,c,tp)
+	local mustg=Auxiliary.GetMustBeMaterialGroup(tp,g,tp,c,g)
+	if must then mustg:Merge(must) end
+	return Duel.GetFlagEffect(tp,26012009)==0 and ((#mustg==1 and c26012009.matfilter(mustg:GetFirst(),c,SUMMON_TYPE_LINK,tp)) or (#mustg==0 and #g>0)) and c26012009[tp]
+end
+function c26012009.plinktg(e,tp,eg,ep,ev,re,r,rp,chk,c,must,g,min,max)
+	local g=Duel.GetMatchingGroup(c26012009.plfilter,tp,LOCATION_HAND+LOCATION_MZONE,0,nil,c,tp)
+	local mustg=Auxiliary.GetMustBeMaterialGroup(tp,g,tp,c,g)
+	if must then mustg:Merge(must) end
+	if #mustg>0 then
+		if #mustg>1 then
+			return false
+		end
+		mustg:KeepAlive()
+		e:SetLabelObject(mustg)
+		return true
+	end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_LMATERIAL)
+	local tc=g:SelectUnselect(Group.CreateGroup(),tp,false,true)
+	if tc then
+		if not (tc:IsCode(26012003) and tc:IsOnField()) then 
+			Duel.RegisterFlagEffect(tp,26012009,RESET_PHASE+PHASE_END,0,1)
+		end
+		local sg=Group.FromCards(tc)
+		sg:KeepAlive()
+		e:SetLabelObject(sg)
+		return true
+	else return false end
+end
+function c26012009.plinkop(e,tp,eg,ep,ev,re,r,rp,c,must,g,min,max)
+	Duel.Hint(HINT_CARD,0,26012009)
+	local mg=e:GetLabelObject()
+	c:SetMaterial(mg)
+	Duel.SendtoGrave(mg,REASON_MATERIAL|REASON_LINK)
+end
+function c26012009.indtg(e,c)
+	return e:GetHandler():GetLinkedGroup():IsContains(c)
+end
+function c26012009.eftg(e,c)
+	local lg=e:GetHandler():GetLinkedGroup()
+	return c:IsType(TYPE_EFFECT) and c:IsType(TYPE_XYZ) and lg:IsContains(c)
+end
+function c26012009.attfilter(c,e)
+	return not c:IsImmuneToEffect(e) and c:IsCode(26012003)
+end
+function c26012009.attcon(e,tp,eg,ep,ev,re,r,rp,chk)
+	return e:GetHandler():GetOverlayGroup():FilterCount(Card.IsCode,nil,26012003)==0
+end
+function c26012009.atttg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(c26012009.attfilter,tp,LOCATION_DECK+LOCATION_GRAVE,0,1,nil,e)
+		and e:GetHandler():IsType(TYPE_XYZ) end
+end
+function c26012009.attop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if not c:IsRelateToEffect(e) or c:IsFacedown() then return end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_XMATERIAL)
+	local tc=Duel.SelectMatchingCard(tp,aux.NecroValleyFilter(c26012009.attfilter),tp,LOCATION_DECK+LOCATION_GRAVE,0,1,1,nil,e):GetFirst()
+	if tc then
+		Duel.Overlay(c,tc,true)
+	end
+	local dg=c:GetOverlayGroup():Filter(Card.IsCode,nil,26012009)
+	if #dg>0 then
+		Duel.SendtoGrave(dg,REASON_EFFECT)
 	end
 end

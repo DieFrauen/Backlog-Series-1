@@ -1,5 +1,4 @@
---Summoned Revenance Fury
+--Revenance Channeler
 function c26015006.initial_effect(c)
-	c:EnableReviveLimit()
-
+	
 end

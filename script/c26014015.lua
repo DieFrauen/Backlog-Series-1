@@ -1,179 +1,147 @@
---Arc-Chemera Legion
+--Arc-Chemeral Convergence
 function c26014015.initial_effect(c)
-	c:EnableReviveLimit()
-	Fusion.AddProcMixRep(c,true,true,aux.TRUE,3,99)
-	--Fusion.AddProcMixN(c,true,true,c26014015.ffilter,3)
-	--lizard check
-	local e0=Effect.CreateEffect(c)
-	e0:SetType(EFFECT_TYPE_SINGLE)
-	e0:SetCode(CARD_CLOCK_LIZARD)
-	e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)
-	e0:SetValue(1)
-	c:RegisterEffect(e0)
+	--send matching targets to GY
 	local e1=Effect.CreateEffect(c)
-	e1:SetType(EFFECT_TYPE_SINGLE)
-	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)
-	e1:SetCode(EFFECT_SPSUMMON_CONDITION)
-	e1:SetValue(c26014015.splimit)
+	e1:SetDescription(aux.Stringid(26014015,0))
+	e1:SetCategory(CATEGORY_TOGRAVE)
+	e1:SetType(EFFECT_TYPE_ACTIVATE)
+	e1:SetCode(EVENT_FREE_CHAIN)
+	e1:SetProperty(EFFECT_FLAG_CARD_TARGET)
+	e1:SetCountLimit(1,26014015,EFFECT_COUNT_CODE_OATH)
+	e1:SetTarget(c26014015.target1)
+	e1:SetOperation(c26014015.activate1)
 	c:RegisterEffect(e1)
-	--Material check
-	local e02=Effect.CreateEffect(c)
-	e02:SetType(EFFECT_TYPE_SINGLE)
-	e02:SetCode(EFFECT_MATERIAL_CHECK)
-	e02:SetLabel(0)
-	e02:SetValue(c26014015.matcheck)
-	c:RegisterEffect(e02)
-	local e2=Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_CONTINUOUS)
-	e2:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e2:SetCondition(c26014015.attcon)
-	e2:SetOperation(c26014015.attop)
-	e2:SetLabelObject(e02)
+	--Banish up to 3 targets
+	local e2=e1:Clone()
+	e2:SetCategory(CATEGORY_REMOVE)
+	e2:SetDescription(aux.Stringid(26014015,1))
+	e2:SetCountLimit(1,{26014015,1},EFFECT_COUNT_CODE_OATH)
+	e2:SetTarget(c26014015.target2)
+	e2:SetOperation(c26014015.activate2)
 	c:RegisterEffect(e2)
-	--Destroy
-	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(26014015,0))
-	e3:SetProperty(CATEGORY_DISABLE,CATEGORY_DESTROY,CATEGORY_DAMAGE)
-	e3:SetType(EFFECT_TYPE_IGNITION)
-	e3:SetProperty(EFFECT_FLAG_CARD_TARGET)
-	e3:SetRange(LOCATION_MZONE)
-	e3:SetTarget(c26014015.target)
-	e3:SetOperation(c26014015.operation)
+	--return all but 4 targets to Deck
+	local e3=e1:Clone()
+	e3:SetCategory(CATEGORY_REMOVE)
+	e3:SetDescription(aux.Stringid(26014015,2))
+	e3:SetCountLimit(1,{26014015,2},EFFECT_COUNT_CODE_OATH)
+	e3:SetTarget(c26014015.target3)
+	e3:SetOperation(c26014015.activate3)
 	c:RegisterEffect(e3)
-	local e3q=e3:Clone()
-	e3q:SetLabel(1)
-	e3q:SetDescription(aux.Stringid(26014015,1))
-	e3q:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
-	e3q:SetCode(EVENT_FREE_CHAIN)
-	e3q:SetCondition(c26014015.qond)
-	e3q:SetCountLimit(1)
-	e3q:SetLabel(1)
-	c:RegisterEffect(e3q)
-	
+	--Return itself to the hand
+	local e4=Effect.CreateEffect(c)
+	e4:SetDescription(aux.Stringid(26014015,3))
+	e4:SetCategory(CATEGORY_TOHAND)
+	e4:SetType(EFFECT_TYPE_IGNITION)
+	e4:SetRange(LOCATION_GRAVE)
+	--e4:SetCountLimit(1,id)
+	e4:SetCondition(aux.exccon)
+	e4:SetCost(c26014015.thcost)
+	e4:SetTarget(c26014015.thtg)
+	e4:SetOperation(c26014015.thop)
+	c:RegisterEffect(e4)
 end
-function c26014015.matcheck(e,c)
-	local g=c:GetMaterial()
-	local att=0
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_EARTH)>0 then
-		att=att+ATTRIBUTE_EARTH 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_WATER)>0 then
-		att=att+ATTRIBUTE_WATER 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_WIND)>0 then
-		att=att+ATTRIBUTE_WIND 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_FIRE)>0 then
-		att=att+ATTRIBUTE_FIRE 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_LIGHT)>0 then
-		att=att+ATTRIBUTE_LIGHT 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,ATTRIBUTE_DARK)>0 then
-		--att=att+ATTRIBUTE_DARK 
-	end
-	if g:FilterCount(Card.IsAttribute,nil,0x40)>0 then
-		att=att+0x40
-	end
-	e:SetLabel(att)
+function c26014015.filter1(c,tp)
+	return c:IsMonster() and c:IsFaceup() and c:GetAttribute()~=0 and c:IsAbleToGrave() and Duel.IsExistingTarget(c26014015.filter1a,tp,LOCATION_REMOVED,LOCATION_REMOVED,1,nil,c:GetAttribute())
 end
-function c26014015.splimit(e,se,sp,st)
-	return se:GetHandler():IsCode(CARD_POLYMERIZATION)
+function c26014015.filter1a(c,att)
+	return c:IsAbleToGrave() and c:IsMonster() and c:IsFaceup() and c:IsAttribute(att)
 end
-function c26014015.attcon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_FUSION)
-end
-function c26014015.attop(e,tp,eg,ep,ev,re,r,rp)
-	local c=e:GetHandler()
-	local att=e:GetLabelObject():GetLabel()
-	if att>0 then
-		--add attributes
-		local e1=Effect.CreateEffect(c)
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_ADD_ATTRIBUTE)
-		e1:SetValue(att)
-		e1:SetReset(RESET_EVENT+RESETS_STANDARD_DISABLE)
-		c:RegisterEffect(e1)
-	end
-end
-function c26014015.tgfilter(c,EARTH,WATER,FIRE,WIND)
-	return c:IsFaceup() and (c:IsAttackAbove(1) and FIRE ) or (c:IsDestructable() and EARTH) or (WATER and not c:IsDisabled()) or (WIND)
-end
-function c26014015.qond(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():GetFlagEffect(26014002)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_WIND),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-end
-function c26014015.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	local c=e:GetHandler()
-	local EARTH =c:GetFlagEffect(26014001)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_EARTH),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	local WATER =c:GetFlagEffect(26014003)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_WATER),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	local FIRE  =c:GetFlagEffect(26014004)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_FIRE),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	local WIND  =c:GetFlagEffect(26014002)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_FIRE),0,LOCATION_MZONE,LOCATION_MZONE,1,nil) and e:GetLabel()==1
-	if chkc then return chkc:IsOnField() end
-	if chk==0 then return (EARTH or WATER or FIRE or WIND) and Duel.IsExistingTarget(c26014015.tgfilter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,c,EARTH,WATER,FIRE,WIND) end
+function c26014015.target1(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	if chkc then return false end
+	if chk==0 then return Duel.IsExistingTarget(c26014015.filter1,tp,LOCATION_MZONE,LOCATION_MZONE,1,nil,tp) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TARGET)
-	local tg=Duel.SelectTarget(tp,c26014015.tgfilter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,1,c,EARTH,WATER,FIRE,WIND)
-	if WATER then Duel.SetOperationInfo(0,CATEGORY_DISABLE,tg,1,0,0) end
-	if EARTH then Duel.SetOperationInfo(0,CATEGORY_DESTROY,tg,1,0,0) end
-	if FIRE and tg:GetFirst():IsAttackAbove(1) then
-		local dam=tg:GetFirst():GetAttack()/2
-		Duel.SetOperationInfo(0,CATEGORY_DAMAGE,nil,0,1-tp,dam)
-	end
-	if WIND then 
-		c:RegisterFlagEffect(26014002,RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END,EFFECT_FLAG_CLIENT_HINT,1,0,aux.Stringid(26014015,5))
-		c:RegisterFlagEffect(26014015,RESET_CHAIN,0,1)
-	end
-	
+	local tc1=Duel.SelectTarget(tp,c26014015.filter1,tp,LOCATION_MZONE,LOCATION_MZONE,1,1,nil,tp):GetFirst()
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+	local tc2=Duel.SelectTarget(tp,c26014015.filter1a,tp,LOCATION_REMOVED,LOCATION_REMOVED,1,1,nil,tc1:GetAttribute()):GetFirst()
+	Duel.SetOperationInfo(0,CATEGORY_TOGRAVE,Group.FromCards(tc1,tc2),1,tp,0)
 end
-function c26014015.operation(e,tp,eg,ep,ev,re,r,rp)
-	local c,tc=e:GetHandler(),Duel.GetFirstTarget()
-	local USE =c:GetFlagEffect(26014015)~=0
-	local EARTH =c:GetFlagEffect(26014001)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_EARTH),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	local WATER =c:GetFlagEffect(26014003)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_WATER),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	local FIRE  =c:GetFlagEffect(26014004)==0 and
-	Duel.IsExistingMatchingCard(aux.FaceupFilter(Card.IsAttribute,ATTRIBUTE_FIRE),0,LOCATION_MZONE,LOCATION_MZONE,1,nil)
-	if tc and tc:IsRelateToEffect(e) then
-		if WATER and not c:IsDisabled() and ((not EARTH and not FIRE and not USE) or Duel.SelectYesNo(tp,aux.Stringid(26014015,2))) then
-			Duel.NegateRelatedChain(tc,RESET_TURN_SET)
-			local e1=Effect.CreateEffect(c)
-			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-			e1:SetCode(EFFECT_DISABLE)
-			e1:SetReset(RESET_EVENT+RESETS_STANDARD)
-			tc:RegisterEffect(e1)
-			local e2=Effect.CreateEffect(c)
-			e2:SetType(EFFECT_TYPE_SINGLE)
-			e2:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-			e2:SetCode(EFFECT_DISABLE_EFFECT)
-			e2:SetValue(RESET_TURN_SET)
-			e2:SetReset(RESET_EVENT+RESETS_STANDARD)
-			tc:RegisterEffect(e2)
-			if tc:IsType(TYPE_TRAPMONSTER) then
-				local e3=Effect.CreateEffect(c)
-				e3:SetType(EFFECT_TYPE_SINGLE)
-				e3:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-				e3:SetCode(EFFECT_DISABLE_TRAPMONSTER)
-				e3:SetReset(RESET_EVENT+RESETS_STANDARD)
-				tc:RegisterEffect(e3)
-			end
-			c:RegisterFlagEffect(26014003,RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END,EFFECT_FLAG_CLIENT_HINT,1,0,aux.Stringid(26014015,6))
-			USE =true
-		end
-		if EARTH and tc:IsDestructable() and ((not FIRE and not USE) or Duel.SelectYesNo(tp,aux.Stringid(26014015,3))) then
-			Duel.Destroy(tc,REASON_EFFECT)
-			c:RegisterFlagEffect(26014001,RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END,EFFECT_FLAG_CLIENT_HINT,1,0,aux.Stringid(26014015,7))
-			USE =true
-		end
-		if FIRE and tc:IsAttackAbove(1) and (not USE or Duel.SelectYesNo(tp,aux.Stringid(26014015,4))) then
-			Duel.Damage(1-tp,tc:GetAttack()/2,REASON_EFFECT)
-			c:RegisterFlagEffect(26014004,RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END,EFFECT_FLAG_CLIENT_HINT,1,0,aux.Stringid(26014015,8))
-			USE =true
-		end
+function c26014015.activate1(e,tp,eg,ep,ev,re,r,rp)
+	local tg=Duel.GetTargetCards(e)
+	if #tg>0 then 
+		Duel.SendtoGrave(tg,REASON_EFFECT)
+	end
+end
+function c26014015.filter2(c,e)
+	return c:IsFaceup() and c:IsMonster() and c:IsAbleToRemove() and aux.SpElimFilter(c,false,true) and c:IsCanBeEffectTarget(e)
+end
+function c26014015.rescon2(sg,e,tp,mg)
+	return sg:IsExists(Card.IsSetCard,1,nil,0x1614)
+	and sg:IsExists(Card.IsAttribute,2,nil,0xf) and
+	(sg:GetClassCount(Card.GetAttribute)==#sg
+	or sg:GetClassCount(Card.GetAttribute)==1)
+end
+function c26014015.target2(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local loc=LOCATION_MZONE|LOCATION_GRAVE 
+	local g=Duel.GetMatchingGroup(c26014015.filter2,tp,loc,loc,nil,e)
+	if chkc then return nil end
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,3,3,c26014015.rescon2,0) end
+	local sg=aux.SelectUnselectGroup(g,e,tp,3,3,c26014015.rescon2,1,tp,HINTMSG_REMOVE,c26014015.rescon2)
+	Duel.SetTargetCard(sg)
+	Duel.SetOperationInfo(0,CATEGORY_REMOVE,sg,3,0,0)
+end
+function c26014015.activate2(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.GetTargetCards(e)
+	if #g==3 then
+		Duel.Remove(g,POS_FACEUP,REASON_EFFECT)
+	end
+end
+function c26014015.filter3(c,g)
+	return c:IsMonster() and c:IsFaceup()
+end
+function c26014015.filter3a(c,e,tp)
+	local g=Duel.GetMatchingGroup(c26014015.filter3,tp,LOCATION_REMOVED,0,nil)
+	return c:IsFaceup() and c:IsMonster() and c:IsAbleToDeck() and
+	aux.SelectUnselectGroup(g,e,tp,4,4,c26014015.rescon3,0)
+end
+function c26014015.rescon3(sg,e,tp,mg)
+	return aux.dncheck and 
+	sg:FilterCount(Card.IsSetCard,nil,0x1614)==4 and
+	sg:FilterCount(Card.IsCanBeEffectTarget,nil,e)==4 and
+	sg:FilterCount(Card.IsControler,nil,tp)==4 and 
+	sg:FilterCount(Card.IsLocation,nil,LOCATION_REMOVED)==4
+end
+function c26014015.target3(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local loc=LOCATION_MZONE|LOCATION_GRAVE|LOCATION_REMOVED 
+	if chkc then return nil end
+	if chk==0 then return Duel.IsExistingMatchingCard(c26014015.filter3a,tp,loc,loc,1,nil,e,tp) end
+	local g=Duel.GetMatchingGroup(c26014015.filter3,tp,loc,loc,nil,e)
+	local sg=aux.SelectUnselectGroup(g,e,tp,4,4,c26014015.rescon3,1,tp,HINTMSG_TARGET,c26014015.rescon3)
+	Duel.SetTargetCard(sg)
+	Duel.SetOperationInfo(0,CATEGORY_TODECK,g,#g-4,0,0)
+end
+function c26014015.activate3(e,tp,eg,ep,ev,re,r,rp)
+	local loc=LOCATION_MZONE|LOCATION_GRAVE|LOCATION_REMOVED 
+	local g1=Duel.GetMatchingGroup(c26014015.filter3,tp,loc,loc,nil)
+	local g2=Duel.GetTargetCards(e)
+	g1:Sub(g2)
+	if #g2==4 and #g1>0 then
+		Duel.SendtoDeck(g1,nil,2,REASON_EFFECT)
+	end
+end
+function c26014015.thfilter(c)
+	local loc=c:GetLocation()
+	return c:IsCode(CARD_POLYMERIZATION) and (
+	c:IsAbleToDeckAsCost() and loc==LOCATION_GRAVE or
+	c:IsDiscardable()   and loc==LOCATION_HAND )
+end
+function c26014015.thcost(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(c26014015.thfilter,tp,LOCATION_HAND+LOCATION_GRAVE,0,1,nil) end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_REMOVE)
+	local tc=Duel.SelectMatchingCard(tp,c26014015.thfilter,tp,LOCATION_HAND+LOCATION_GRAVE,0,1,1,nil):GetFirst()
+	if tc:IsLocation(LOCATION_GRAVE) then
+		Duel.SendtoDeck(tc,nil,2,REASON_COST)
+	else
+		Duel.SendtoGrave(tc,REASON_COST+REASON_DISCARD)
+	end 
+end
+function c26014015.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsAbleToHand() end
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,c,1,0,LOCATION_GRAVE)
+end
+function c26014015.thop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if c:IsRelateToEffect(e) and Duel.SendtoHand(c,nil,REASON_EFFECT)>0 then
+		Duel.ConfirmCards(1-tp,c)
 	end
 end

@@ -1,57 +1,45 @@
---Remnance Armed Remains
+--Remnance Strenght Remains
 function c26015003.initial_effect(c)
-	--Increase ATK/DEF
+	--Search
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(26015003,0))
-	e1:SetCategory(CATEGORY_ATKCHANGE+CATEGORY_DEFCHANGE)
-	e1:SetType(EFFECT_TYPE_QUICK_O)
-	e1:SetCode(EVENT_PRE_DAMAGE_CALCULATE)
+	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e1:SetType(EFFECT_TYPE_IGNITION)
 	e1:SetRange(LOCATION_MZONE)
-	e1:SetCondition(c26015003.atkcon)
-	e1:SetCost(c26015003.atkcost)
-	e1:SetOperation(c26015003.atkop)
+	e1:SetCountLimit(1,26015003)
+	e1:SetCost(c26015003.spcost)
+	e1:SetTarget(c26015003.sptg)
+	e1:SetOperation(c26015003.spop)
 	c:RegisterEffect(e1)
 	
 end
-function c26015003.atkcon(e,tp,eg,ep,ev,re,r,rp)
-	local tc=Duel.GetAttacker()
-	local bc=Duel.GetAttackTarget()
-	if bc and bc:IsControler(tp) then tc=bc end
-	e:SetLabelObject(tc)
-	return tc:IsFaceup() and tc:IsRace(RACE_ZOMBIE) and Duel.GetCurrentPhase()==PHASE_DAMAGE_CAL and not e:GetHandler():IsStatus(STATUS_CHAINING)
+
+function c26015003.spfilter(c,e,tp,lv)
+	return c:IsSetCard(0x615) and
+	c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+	and c:GetLevel()==lv-3
 end
-function c26015003.atkfilter(c)
-	return c:GetAttack()>0 and c:IsDiscardable() and c:IsRace(RACE_ZOMBIE) and c:IsAttribute(ATTRIBUTE_DARK)
+function c26015003.ctfilter(c,e,tp)
+	return c:IsType(TYPE_MONSTER) and c:IsType(TYPE_RITUAL) and not c:IsPublic()
+		and Duel.IsExistingMatchingCard(c26015003.spfilter,tp,LOCATION_DECK,0,1,nil,e,tp,c:GetLevel())
 end
-function c26015003.atkcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.IsExistingMatchingCard(c26015003.atkfilter,tp,LOCATION_HAND,0,1,nil) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DISCARD)
-	local g=Duel.SelectMatchingCard(tp,c26015003.atkfilter,tp,LOCATION_HAND,0,1,1,nil)
-	e:SetLabel(g:GetFirst():GetAttack())
-	Duel.SendtoGrave(g,REASON_COST+REASON_DISCARD)
+function c26015003.spcost(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(c26015003.ctfilter,tp,LOCATION_HAND,0,1,nil,e,tp) end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+	local sg=Duel.SelectMatchingCard(tp,c26015003.ctfilter,tp,LOCATION_HAND,0,1,1,nil,e,tp)
+	e:SetLabel(sg:GetFirst():GetLevel())
+	Duel.ConfirmCards(1-tp,sg)
 end
-function c26015003.atkop(e,tp,eg,ep,ev,re,r,rp)
-	local c=e:GetHandler()
-	local tc=e:GetLabelObject()
-	if tc:IsRelateToBattle() and tc:IsFaceup() and tc:IsControler(tp) then
-		local e1=Effect.CreateEffect(c)
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_SET_ATTACK_FINAL)
-		e1:SetValue(e:GetLabel())
-		e1:SetReset(RESET_EVENT+RESETS_STANDARD)
-		tc:RegisterEffect(e1)
-		local e2=Effect.CreateEffect(c)
-		e2:SetCategory(CATEGORY_DRAW)
-		e2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_CONTINUOUS)
-		e2:SetCode(EVENT_BATTLE_DESTROYING)
-		e2:SetCountLimit(1)
-		e2:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_BATTLE_STEP)
-		e2:SetCondition(aux.bdocon)
-		e2:SetOperation(c26015003.drop)
-		tc:RegisterEffect(e2)
+function c26015003.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,0,LOCATION_DECK)
+end
+function c26015003.spop(e,tp,eg,ep,ev,re,r,rp)
+	local lv=e:GetLabel()
+	if Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+	local g=Duel.SelectMatchingCard(tp,c26015003.spfilter,tp,LOCATION_DECK,0,1,1,nil,e,tp,lv)
+	if #g>0 then
+		Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)
 	end
-end
-function c26015003.drop(e,tp,eg,ep,ev,re,r,rp)
-	Duel.Hint(HINT_CARD,tp,26015003)
-	Duel.Draw(tp,1,REASON_EFFECT)
 end

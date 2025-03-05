@@ -1,5 +1,4 @@
---Sempiternal Revenance Wrath
+--Call of Revenance
 function c26015015.initial_effect(c)
-	c:EnableReviveLimit()
 	
 end

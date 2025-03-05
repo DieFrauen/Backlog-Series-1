@@ -1,125 +1,105 @@
---Arc-Chemera Liocamus
+--Arc-Chemera Merleus
 function c26014006.initial_effect(c)
 	--fusion material
 	c:EnableReviveLimit()
-	Fusion.AddProcMix(c,true,true,
-	aux.FilterBoolFunctionEx(Card.IsAttribute,ATTRIBUTE_WATER),
-	aux.FilterBoolFunctionEx(Card.IsAttribute,ATTRIBUTE_EARTH))
-	--lizard check
-	local e0=Effect.CreateEffect(c)
-	e0:SetType(EFFECT_TYPE_SINGLE)
-	e0:SetCode(CARD_CLOCK_LIZARD)
-	e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)
-	e0:SetValue(1)
-	c:RegisterEffect(e0)
+	local f0=Fusion.AddProcMix(c,false,false,26014001,26014003)[1]
+	f0:SetDescription(aux.Stringid(26014006,0))
+	local f1=Fusion.AddProcMix(c,false,false,
+	aux.FilterBoolFunctionEx(Card.IsAttribute,ATTRIBUTE_EARTH),
+	aux.FilterBoolFunctionEx(Card.IsAttribute,ATTRIBUTE_WATER))[1]
+	f1:SetDescription(aux.Stringid(26014006,1))
+	if not c:IsStatus(STATUS_COPYING_EFFECT) then
+		f1:SetValue(c26014006.matfilter)
+	end
+	aux.GlobalCheck(c26014006,function()
+		c26014006.polycheck=0
+	end)
 	local e1=Effect.CreateEffect(c)
 	e1:SetType(EFFECT_TYPE_SINGLE)
 	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)
 	e1:SetCode(EFFECT_SPSUMMON_CONDITION)
 	e1:SetValue(c26014006.splimit)
 	c:RegisterEffect(e1)
-	--special summon
+	--negate target effect
 	local e2=Effect.CreateEffect(c)
-	e2:SetDescription(aux.Stringid(26014006,0))
-	e2:SetCategory(CATEGORY_SPECIAL_SUMMON)
-	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)
-	e2:SetProperty(EFFECT_FLAG_CARD_TARGET+EFFECT_FLAG_DELAY)
-	e2:SetCode(EVENT_TO_GRAVE)
-	e2:SetRange(LOCATION_MZONE)
-	e2:SetCountLimit(1)
-	e2:SetCondition(c26014006.spcon)
-	e2:SetTarget(c26014006.sptg)
-	e2:SetOperation(c26014006.spop)
+	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+	e2:SetCode(EVENT_CHAIN_SOLVING)
+	e2:SetRange(LOCATION_MZONE+LOCATION_GRAVE)
+	e2:SetCountLimit(1,26014006,1)
+	e2:SetCondition(c26014006.remcon)
+	e2:SetOperation(c26014006.remop)
 	c:RegisterEffect(e2)
-	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(26014006,1))
-	e3:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)
-	e3:SetCategory(CATEGORY_TOHAND)
-	e3:SetCode(EVENT_PHASE+PHASE_END)
-	e3:SetRange(LOCATION_GRAVE)
-	e3:SetCountLimit(1)
-	e3:SetTarget(c26014006.rettg2)
-	e3:SetOperation(c26014006.retop)
-	c:RegisterEffect(e3)
-	--If fusion summoned with an Arc-Chemic
+	--Special summon 1 "Arc-Chem" monster during the next Standby Phase
 	local e4=Effect.CreateEffect(c)
-	e4:SetType(EFFECT_TYPE_SINGLE)
-	e4:SetCode(EFFECT_MATERIAL_CHECK)
-	e4:SetValue(c26014006.valcheck)
+	e4:SetDescription(aux.Stringid(26014006,1))
+	e4:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e4:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+	e4:SetProperty(EFFECT_FLAG_DELAY)
+	e4:SetCode(EVENT_REMOVE)
+	e4:SetCountLimit(1,{26014006,1})
+	e4:SetTarget(c26014006.sptg)
+	e4:SetOperation(c26014006.spop)
 	c:RegisterEffect(e4)
-	local e3a=e3:Clone()
-	e3a:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)
-	e3a:SetRange(LOCATION_MZONE)
-	e3a:SetLabelObject(e4)
-	e3a:SetCondition(c26014006.valcond)
-	e3a:SetLabel(1)
-	c:RegisterEffect(e3a)
-	local e3b=e3:Clone()
-	e3b:SetDescription(aux.Stringid(26014006,2))
-	e3b:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_F)
-	e3b:SetRange(LOCATION_MZONE)
-	e3b:SetLabelObject(e4)
-	e3b:SetCondition(c26014006.valcond)
-	e3b:SetTarget(c26014006.rettg)
-	e3b:SetLabel(0)
-	c:RegisterEffect(e3b)
 end
-function c26014006.valcheck(e,c)
-	if c:GetMaterial():IsExists(Card.IsSetCard,1,nil,0x1614) then
-		e:SetLabel(1)
+c26014006.listed_names={CARD_POLYMERIZATION }
+function c26014006.splimit(e,se,sp,st)
+	if se:GetHandler():IsCode(CARD_POLYMERIZATION) then c26014006.polycheck=1
+	else c26014006.polycheck=0 end
+	if (not e:GetHandler():IsLocation(LOCATION_EXTRA) or (st&SUMMON_TYPE_FUSION)==SUMMON_TYPE_FUSION) then
+		return se
 	end
 end
-function c26014006.valcond(e,c)
-	return e:GetLabel()==e:GetLabelObject():GetLabel()
+function c26014006.matfilter(c,fc,sub,sub2,mg,sg,tp,contact,sumtype)
+	if sumtype&SUMMON_TYPE_FUSION ~=0 and fc:IsLocation(LOCATION_EXTRA) and mg then
+		return c26014006.polycheck==1
+	end
+	return c26014006.polycheck==1
 end
-function c26014006.splimit(e,se,sp,st)
-	return se:GetHandler():IsCode(CARD_POLYMERIZATION)
+function c26014006.remfilter(c,tp)
+	return c:IsSetCard(0x614) and c:IsFaceup() and c:IsLocation(LOCATION_ONFIELD|LOCATION_GRAVE) and c:IsControler(tp)
 end
-function c26014006.cfilter(c,tp)
-	return c:IsMonster() and c:IsPreviousLocation(LOCATION_MZONE)
+function c26014006.remcon(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.GetChainInfo(ev,CHAININFO_TARGET_CARDS)
+	return re:IsHasProperty(EFFECT_FLAG_CARD_TARGET)
+		and g and g:IsExists(c26014006.remfilter,1,nil,tp) and Duel.IsChainDisablable(ev) and rp~=tp
 end
-function c26014006.spcon(e,tp,eg,ep,ev,re,r,rp)
-	return eg:IsExists(c26014006.cfilter,1,nil,tp)
+function c26014006.remop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	local cid=Duel.GetChainInfo(ev,CHAININFO_CHAIN_ID)
+	if not c:IsAbleToRemove() and (aux.SpElimFilter(c,true) or not c:IsLocation(LOCATION_GRAVE))
+	then return end
+	if not Duel.SelectEffectYesNo(tp,c) then return end
+	Duel.Hint(HINT_CARD,0,26014006)
+	Duel.Remove(c,POS_FACEUP,REASON_EFFECT)
+	Duel.NegateEffect(ev)
 end
-function c26014006.filter(c,e,tp,eg)
-	return c:GetLevel()<=4 and c:IsCanBeSpecialSummoned(e,0,tp,false,false) and eg:IsExists(Card.GetControler,1,nil,c:GetControler())
-end
-function c26014006.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and c26014006.filter(chkc,e,tp,eg) end
-	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and e:GetHandler():IsRelateToEffect(e)
-		and e:GetHandler():IsFaceup() and Duel.IsExistingTarget(c26014006.filter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,nil,e,tp,eg) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
-	local g=Duel.SelectTarget(tp,c26014006.filter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,1,nil,e,tp,eg)
-	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,g,1,0,0)
+function c26014006.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
+	Duel.SetPossibleOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)
 end
 function c26014006.spop(e,tp,eg,ep,ev,re,r,rp)
-	local tc=Duel.GetFirstTarget()
-	if e:GetHandler():IsRelateToEffect(e) and e:GetHandler():IsFaceup() and tc:IsRelateToEffect(e) then
-		Duel.SpecialSummon(tc,0,tp,tp,false,false,POS_FACEUP)
-	end
+	local e1=Effect.CreateEffect(e:GetHandler())
+	e1:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+	e1:SetCode(EVENT_PHASE+PHASE_END)
+	e1:SetCode(EVENT_PHASE+PHASE_STANDBY)
+	e1:SetCountLimit(1)
+	e1:SetLabel(Duel.GetTurnCount())
+	e1:SetCondition(c26014006.spcon1)
+	e1:SetOperation(c26014006.spop1)
+	Duel.RegisterEffect(e1,tp)
 end
 
-function c26014006.retfilter(c)
-	return c:IsCode(CARD_POLYMERIZATION) and c:IsAbleToHand()
+function c26014006.spcon1(e,tp,eg,ep,ev,re,r,rp)
+	return Duel.GetTurnCount()>e:GetLabel()
 end
-function c26014006.rettg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-	Duel.SetOperationInfo(0,CATEGORY_TOHAND,e:GetHandler(),1,0,0)
+function c26014006.filter(c,e,tp)
+	return c:IsSetCard(0x614) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
-function c26014006.rettg2(e,tp,eg,ep,ev,re,r,rp,chk)
-	local c=e:GetHandler()
-	if chk==0 then return c:IsAbleToHand() end
-	Duel.SetOperationInfo(0,CATEGORY_TOHAND,c,1,0,0)
-end
-function c26014006.retop(e,tp,eg,ep,ev,re,r,rp)
-	local c=e:GetHandler()
-	if c:IsRelateToEffect(e) then
-		local og=Duel.GetMatchingGroup(c26014006.retfilter,tp,LOCATION_GRAVE,0,nil)
-		local sg=Group.CreateGroup()
-		sg:AddCard(c)
-		if #og>0 and Duel.SelectYesNo(tp,aux.Stringid(26014006,3)) then
-			sg:AddCard(og:Select(tp,1,1,nil):GetFirst())
-		end
-		Duel.SendtoHand(sg,nil,REASON_EFFECT)
+function c26014006.spop1(e,tp,eg,ep,ev,re,r,rp)
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+	local g=Duel.SelectMatchingCard(tp,c26014006.filter,tp,LOCATION_REMOVED,0,1,1,nil,e,tp)
+	if #g>0 and Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)==0 then
+		Duel.SendtoGrave(g,REASON_RULE)
 	end
+	e:Reset()
 end

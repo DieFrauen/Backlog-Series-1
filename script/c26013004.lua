@@ -3,61 +3,74 @@ function c26013004.initial_effect(c)
 	--Special Summon
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(26013004,0))
-	e1:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_SPSUM_PARAM)
-	e1:SetType(EFFECT_TYPE_FIELD)
-	e1:SetCode(EFFECT_SPSUMMON_PROC)
+	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e1:SetType(EFFECT_TYPE_IGNITION)
+	e1:SetProperty(EFFECT_FLAG_CARD_TARGET)
 	e1:SetRange(LOCATION_HAND)
-	e1:SetTargetRange(POS_FACEUP,0)
-	e1:SetCondition(c26013004.spcon)
+	e1:SetLabel(1)
+	e1:SetCountLimit(1,26013004)
+	e1:SetTarget(c26013004.sptg)
+	e1:SetOperation(c26013004.spop)
 	c:RegisterEffect(e1)
 	local e2=e1:Clone()
-	e2:SetRange(LOCATION_GRAVE)
-	e2:SetLabel(1)
-	e2:SetCountLimit(1,26013004,EFFECT_COUNT_CODE_DUEL)
+	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
+	e2:SetCode(EVENT_CHAINING)
+	e2:SetCondition(c26013004.qcon)
+	e2:SetCost(c26013004.qcost)
 	c:RegisterEffect(e2)
-	--lv change
-	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(26013004,1))
-	e3:SetCategory(CATEGORY_ATKCHANGE)
-	e3:SetProperty(EFFECT_FLAG_CARD_TARGET)
-	e3:SetType(EFFECT_TYPE_IGNITION)
-	e3:SetRange(LOCATION_MZONE)
-	e3:SetTarget(c26013004.target)
-	e3:SetOperation(c26013004.operation)
+	local e3=e1:Clone()
+	e3:SetRange(LOCATION_GRAVE)
+	e3:SetLabel(2)
+	e3:SetCountLimit(1,{26013004,1})
 	c:RegisterEffect(e3)
-	--spsummon limit
-	local e4=Effect.CreateEffect(c)
-	e4:SetType(EFFECT_TYPE_FIELD)
-	e4:SetRange(LOCATION_MZONE)
-	e4:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
-	e4:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
-	e4:SetTargetRange(1,0)
-	e4:SetTarget(c26013004.splimit)
+	local e4=e1:Clone()
+	e4:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
+	e4:SetCode(EVENT_CHAINING)
+	e4:SetRange(LOCATION_GRAVE)
+	e4:SetLabel(2)
+	e4:SetCondition(c26013004.qcon)
+	e4:SetCost(c26013004.qcost)
+	e4:SetCountLimit(1,{26013004,1})
 	c:RegisterEffect(e4)
-	--clock lizard
-	aux.addContinuousLizardCheck(c,LOCATION_MZONE,c26013004.lizfilter)
-	
+	--lv change
+	local e5=Effect.CreateEffect(c)
+	e5:SetDescription(aux.Stringid(26013004,1))
+	e5:SetCategory(CATEGORY_ATKCHANGE)
+	e5:SetProperty(EFFECT_FLAG_CARD_TARGET)
+	e5:SetType(EFFECT_TYPE_IGNITION)
+	e5:SetRange(LOCATION_MZONE)
+	e5:SetTarget(c26013004.target)
+	e5:SetOperation(c26013004.operation)
+	c:RegisterEffect(e5)
+end
+function c26013004.qcon(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.GetChainInfo(ev,CHAININFO_TARGET_CARDS)
+	return Duel.IsPlayerAffectedByEffect(tp,26013011)
+	and ((re:IsHasProperty(EFFECT_FLAG_CARD_TARGET)
+	and g and g:IsContains(e:GetHandler())
+	and re:GetHandler():IsSetCard(0x613)) or rp~=tp)
+end
+function c26013004.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.GetFlagEffect(tp,26013011)==0 end
+	Duel.RegisterFlagEffect(tp,26013011,RESET_CHAIN,0,1)
 end
 function c26013004.tuner(c,b)
-	return c:IsType(TYPE_TUNER) and c:GetOriginalType()&TYPE_TUNER 
+	return c:IsFaceup() and c:IsType(TYPE_TUNER) and (b==1 or (c:GetOriginalType()&TYPE_TUNER)==0)
 end
-function c26013004.spcon(e,c)
-	if c==nil then return true end
-	local tp=c:GetControler()
-	local b=e:GetLabel()
-	return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
-	and Duel.IsExistingMatchingCard(aux.FilterFaceupFunction(Card.IsType,TYPE_TUNER),tp,LOCATION_MZONE,0,1,nil,b)
-	and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP)
+function c26013004.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local ct=e:GetLabel()
+	if chkc then return c26013004:IsLocation(LOCATION_MZONE) and chkc:IsControler(tp) and c26013004.tuner(chkc,ct) end
+	local c=e:GetHandler()
+	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 
+		and Duel.IsExistingTarget(c26013004.tuner,tp,LOCATION_MZONE,0,1,nil,ct) and c:IsCanBeSpecialSummoned(e,0,tp,false,false) end
+	local tc=Duel.SelectTarget(tp,c26013004.tuner,tp,LOCATION_MZONE,0,1,1,nil,ct)
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,c,1,0,0)
 end
-function c26013004.spcon2(e,c)
-	if c==nil then return true end
-	local eff={c:GetCardEffect(EFFECT_NECRO_VALLEY)}
-	for _,te in ipairs(eff) do
-		local op=te:GetOperation()
-		if not op or op(e,c) then return false end
+function c26013004.spop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if Duel.GetLocationCount(tp,LOCATION_MZONE)>0 then
+		Duel.SpecialSummon(c,0,tp,tp,false,false,POS_FACEUP)
 	end
-	return Duel.GetLocationCount(c:GetControler(),LOCATION_MZONE)>0 and
-		Duel.IsExistingMatchingCard(aux.FilterFaceupFunction(c26013004.tuner),c:GetControler(),LOCATION_MZONE,0,1,nil)
 end
 function c26013004.filter(c,lv)
 	return c:IsLevelAbove(lv+1)
@@ -110,10 +123,4 @@ function c26013004.operation(e,tp,eg,ep,ev,re,r,rp)
 			tc:RegisterEffect(e5)
 		end
 	end
-end
-function c26013004.splimit(e,c,sump,sumtype,sumpos,targetp,se)
-	return not c:IsType(TYPE_SYNCHRO+TYPE_TUNER) and c:IsLocation(LOCATION_EXTRA)
-end
-function c26013004.lizfilter(e,c)
-	return not c:IsOriginalType(TYPE_SYNCHRO+TYPE_TUNER)
 end
