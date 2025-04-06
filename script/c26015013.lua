@@ -1,4 +1,4 @@
---Hollow Remains
+--Lingering Remnity
 function c26015013.initial_effect(c)
 	--Activate
 	local e1=Effect.CreateEffect(c)
@@ -6,7 +6,6 @@ function c26015013.initial_effect(c)
 	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
 	e1:SetType(EFFECT_TYPE_ACTIVATE)
 	e1:SetCode(EVENT_FREE_CHAIN)
-	e1:SetCost(c26015013.cost)
 	e1:SetCountLimit(1,26015013)
 	e1:SetTarget(c26015013.target)
 	e1:SetOperation(c26015013.operation)
@@ -27,6 +26,7 @@ function c26015013.initial_effect(c)
 	--e3:SetCondition(c26015013.mtcon)
 	e3:SetOperation(c26015013.mtop)
 	c:RegisterEffect(e3)
+	--retrieve "Vengeance Revival"
 	local e4=Effect.CreateEffect(c)
 	e4:SetDescription(aux.Stringid(26015013,0))
 	e4:SetCategory(CATEGORY_TOHAND+CATEGORY_TODECK)
@@ -39,11 +39,7 @@ function c26015013.initial_effect(c)
 	e4:SetOperation(c26015013.thop)
 	c:RegisterEffect(e4)
 end
-function c26015013.cost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.CheckLPCost(tp,1000) end
-	Duel.PayLPCost(tp,1000)
-end
-
+c26015013.listed_names={26015011}
 function c26015013.filter(c,e,tp)
 	return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and c:IsRace(RACE_ZOMBIE) and 
 	(c:IsCanBeSpecialSummoned(e,0,tp,false,false) or
@@ -53,7 +49,7 @@ function c26015013.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_HAND+LOCATION_GRAVE) and chkc:IsControler(tp) end
 	if chk==0 then return Duel.IsExistingMatchingCard(c26015013.filter,tp,LOCATION_HAND+LOCATION_GRAVE,0,1,nil,e,tp) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TARGET)
-	Duel.SetPossibleOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,0,0)
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,0,LOCATION_HAND+LOCATION_GRAVE)
 	Duel.SetOperationInfo(0,CATEGORY_EQUIP,e:GetHandler(),1,0,0)
 end
 function c26015013.operation(e,tp,eg,ep,ev,re,r,rp)
@@ -90,7 +86,7 @@ function c26015013.mtcon(e,tp,eg,ep,ev,re,r,rp)
 	return Duel.GetTurnPlayer()==tp
 end
 function c26015013.disfilter(c,e)
-	return c:IsAttribute(ATTRIBUTE_DARK) and c:IsMonster() and c:IsReleasable()
+	return c:IsMonster() 
 end
 function c26015013.mtop(e,tp,eg,ep,ev,re,r,rp)
 	local tc=e:GetHandler():GetEquipTarget()

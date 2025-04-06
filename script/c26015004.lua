@@ -12,106 +12,107 @@ function c26015004.initial_effect(c)
 	e1:SetTarget(c26015004.thtg)
 	e1:SetOperation(c26015004.thop)
 	c:RegisterEffect(e1)
-	--ATK down
+	--Special Summon tributes
 	local e2=Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_QUICK_O)
 	e2:SetDescription(aux.Stringid(26015004,1))
-	e2:SetCategory(CATEGORY_ATKCHANGE)
-	e2:SetCode(EVENT_FREE_CHAIN)
-	e2:SetHintTiming(TIMING_DAMAGE_STEP)
-	e2:SetRange(LOCATION_HAND)
-	e2:SetProperty(EFFECT_FLAG_DAMAGE_STEP)
-	e2:SetCondition(c26015004.atcon)
-	e2:SetCost(c26015004.atcost)
-	e2:SetOperation(c26015004.atop)
+	e2:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
+	e2:SetCode(EVENT_CHAINING)
+	e2:SetRange(LOCATION_GRAVE)
+	e2:SetCountLimit(1,26015004)
+	e2:SetCondition(c26015004.spcond)
+	e2:SetCost(c26015004.spcost)
+	e2:SetTarget(c26015004.sptg)
+	e2:SetOperation(c26015004.spop)
 	c:RegisterEffect(e2)
-	local e3=Effect.CreateEffect(c)
-	e3:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_GRANT)
-	e3:SetRange(LOCATION_GRAVE)
-	e3:SetTargetRange(LOCATION_HAND,0)
-	e3:SetTarget(c26015004.eftg)
-	e3:SetCondition(c26015004.efcon)
-	e3:SetLabelObject(e2)
-	c:RegisterEffect(e3)
-	--tribute Register 
-	local e4=Effect.CreateEffect(c)
-	e4:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_CONTINUOUS)
-	e4:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-	e4:SetCode(EVENT_TO_GRAVE)
-	e4:SetCondition(c26015004.regcon)
-	e4:SetOperation(c26015004.regop)
-	c:RegisterEffect(e4)
 end
 function c26015004.thfilter(c,e,tp)
-	if c:IsReleasable() then
-		local lab=Group.FromCards(c,e:GetHandler()):GetSum(Card.GetLevel)
-		return Duel.IsExistingMatchingCard(c26015004.cfilter,tp,LOCATION_DECK,0,1,c,lab) 
-	end
+	return c:IsReleasable()
 end
-function c26015004.cfilter(c,lab)
-	return c:IsType(TYPE_RITUAL) and c:IsAttribute(ATTRIBUTE_DARK) and 
-	c:GetLevel()==lab and c:IsAbleToHand()
+function c26015004.typfilter(c,tc)
+	return c:IsRace(tc:GetRace())   
+	and c:IsAttribute(tc:GetAttribute())
+end
+function c26015004.cfilter(c,g)
+	return c:IsType(TYPE_RITUAL)
+	and g:IsExists(c26015004.typfilter,1,nil,c)
+	and c:GetLevel()==g:GetSum(Card.GetLevel)   
+	and c:IsAbleToHand()
+end
+function c26015004.rescon(sg,e,tp,mg)
+	return sg:IsContains(e:GetHandler())
+	and Duel.IsExistingMatchingCard(c26015004.cfilter,tp,LOCATION_DECK,0,1,nil,sg)
 end
 function c26015004.thcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
-	if chk==0 then return c:IsReleasable() and Duel.IsExistingMatchingCard(c26015004.thfilter,tp,LOCATION_HAND,0,1,c,e,tp) end
-	local tg=Duel.SelectMatchingCard(tp,c26015004.thfilter,tp,LOCATION_HAND,0,1,1,c,e,tp)
-	tg:AddCard(c)
-	e:SetLabel(tg:GetSum(Card.GetLevel))
-	Duel.SendtoGrave(tg,REASON_COST+REASON_RELEASE)
+	local g=Duel.GetMatchingGroup(c26015004.thfilter,tp,LOCATION_HAND,0,nil,e,tp)
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,2,3,c26015004.rescon,0) end
+	local sg=aux.SelectUnselectGroup(g,e,tp,2,3,c26015004.rescon,1,tp,HINTMSG_TODECK,c26015004.rescon)
+	e:SetLabelObject(sg)
+	sg:KeepAlive()
+	Duel.SendtoGrave(sg,REASON_COST+REASON_RELEASE)
 end
 function c26015004.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
-	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK+LOCATION_GRAVE)
 end
 function c26015004.thop(e,tp,eg,ep,ev,re,r,rp)
+	local tg=e:GetLabelObject()
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
-	local g=Duel.SelectMatchingCard(tp,c26015004.cfilter,tp,LOCATION_DECK,0,1,1,nil,e:GetLabel())
+	local g=Duel.SelectMatchingCard(tp,aux.NecroValleyFilter(c26015004.cfilter),tp,LOCATION_DECK+LOCATION_GRAVE,0,1,1,nil,tg)
 	if #g>0 then
 		Duel.SendtoHand(g,nil,REASON_EFFECT)
 		Duel.ConfirmCards(1-tp,g)
 	end
 end
---ATK down
-function c26015004.atcon(e,tp,eg,ep,ev,re,r,rp)
-	local phase=Duel.GetCurrentPhase()
-	if phase~=PHASE_DAMAGE or Duel.IsDamageCalculated() then return false end
-	local a=Duel.GetAttacker()
-	local d=Duel.GetAttackTarget()
-	return d~=nil and d:IsFaceup() and (
-	(a:GetControler()==tp and a:IsAttribute(ATTRIBUTE_DARK) and a:IsRace(RACE_ZOMBIE) and a:IsRelateToBattle())
-		or
-	(d:GetControler()==tp and d:IsAttribute(ATTRIBUTE_DARK) and d:IsRace(RACE_ZOMBIE) and d:IsRelateToBattle()))
+function c26015004.spfilter(c,e,tp)
+	return c:IsSetCard(0x1615) and
+	c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)
 end
-function c26015004.atcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return e:GetHandler():IsAbleToGraveAsCost() end
-	Duel.SendtoGrave(e:GetHandler(),REASON_COST+REASON_RELEASE)
+function c26015004.filter2(c,lv)
+	return c:IsRitualMonster() and c:GetLevel()==lv
 end
-function c26015004.atop(e,tp,eg,ep,ev,re,r,rp,chk)
-	local a=Duel.GetAttacker()
-	local d=Duel.GetAttackTarget()
-	if not a:IsRelateToBattle() or not d:IsRelateToBattle() then return end
-	local e1=Effect.CreateEffect(e:GetHandler())
-	e1:SetOwnerPlayer(tp)
-	e1:SetType(EFFECT_TYPE_SINGLE)
-	e1:SetCode(EFFECT_UPDATE_ATTACK)
-	e1:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)
-	e1:SetValue(-e:GetHandler():GetAttack())
-	if a:GetControler()==tp then
-		d:RegisterEffect(e1)
-	else
-		a:RegisterEffect(e1)
+function c26015004.rescon2(sg,e,tp,mg)
+	local lv=sg:GetSum(Card.GetLevel)
+	local g=Duel.GetMatchingGroup(c26015004.filter2,tp,LOCATION_HAND+LOCATION_GRAVE,0,nil,lv)
+	return sg:IsContains(e:GetHandler()) and #g>0
+end
+function c26015004.spcond(e,tp,eg,ep,ev,re,r,rp)
+	return re:IsActiveType(TYPE_MONSTER)
+end
+function c26015004.spcost(e,tp,eg,ep,ev,re,r,rp,chk)
+	local op=rp~=tp
+	if chk==0 then return op or Duel.IsPlayerAffectedByEffect(tp,26015010) end
+	if not op then
+		Duel.Hint(HINT_CARD,1-tp,26015010)
+		Duel.RegisterFlagEffect(tp,26015010,RESET_PHASE+PHASE_END,0,1)
 	end
 end
-function c26015004.regcon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():IsReason(REASON_RELEASE)
+function c26015004.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	local g=Duel.GetMatchingGroup(c26015004.spfilter,tp,LOCATION_GRAVE,0,nil,e,tp)
+	local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
+	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) then
+		ft=1
+	end
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,1,ft,c26015004.rescon2,0) end
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,2,0,LOCATION_GRAVE)
 end
-function c26015004.regop(e,tp,eg,ep,ev,re,r,rp)
-	e:GetHandler():RegisterFlagEffect(26015004,RESET_EVENT+RESETS_STANDARD,0,1)
-end
-function c26015004.efcon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():GetFlagEffect(26015004)~=0
-end
-function c26015004.eftg(e,c)
-	return c:IsType(TYPE_EFFECT) and c:IsSetCard(0x615)
+function c26015004.spop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if not c:IsRelateToEffect(e) then return end
+	local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
+	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) then
+		ft=1
+	end
+	local g=Duel.GetMatchingGroup(aux.NecroValleyFilter(c26015004.spfilter),tp,LOCATION_GRAVE,0,nil,e,tp)
+	local sg=aux.SelectUnselectGroup(g,e,tp,1,ft,c26015004.rescon2,1,tp,HINTMSG_SPSUMMON,c26015004.rescon2)
+	if #sg>0 then
+		Duel.SpecialSummon(sg,0,tp,tp,false,false,POS_FACEDOWN_DEFENSE)
+		local g=Duel.SelectMatchingCard(tp,c26015004.filter2,tp,LOCATION_HAND+LOCATION_GRAVE,0,1,1,nil,sg:GetSum(Card.GetLevel)):GetFirst()
+		local rg=sg:Clone()
+		if g:IsLocation(LOCATION_HAND) then rg:AddCard(g)
+		else Duel.HintSelection(g) end
+		Duel.ConfirmCards(1-tp,rg)
+		Duel.ShuffleSetCard(sg)
+	end
 end

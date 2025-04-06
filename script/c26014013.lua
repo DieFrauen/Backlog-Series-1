@@ -36,7 +36,7 @@ function c26014013.filter2(c,tc)
 	return c:IsAbleToGrave() and c:IsMonster() and c:IsSetCard(0x1614) and not c:IsCode(tc:GetCode())
 end
 function c26014013.filter2a(c,tc)
-	return c:IsAbleToGrave() and c:IsLevelBelow(4) and c:IsMonster() and c:IsAttribute(att)
+	return c:IsAbleToGrave() and c:IsLevelBelow(4) and c:IsMonster() and c:IsAttribute(tc:GetAttribute())
 end
 function c26014013.filter3(c,tp,tc)
 	return c:IsSetCard(0x1614) and c:IsMonster()

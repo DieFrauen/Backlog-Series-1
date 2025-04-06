@@ -1,4 +1,4 @@
---Eternal Revemnity
+--Unstoppable Revemnity
 function c26015009.initial_effect(c)
 	c:EnableReviveLimit()
 	--negate attack
@@ -38,20 +38,18 @@ function c26015009.initial_effect(c)
 	e5:SetType(EFFECT_TYPE_SINGLE)
 	e5:SetProperty(EFFECT_FLAG_SINGLE_RANGE)
 	e5:SetRange(LOCATION_MZONE)
-	e5:SetCode(EFFECT_INDESTRUCTABLE_BATTLE)
+	e5:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
 	e5:SetValue(1)
 	c:RegisterEffect(e5)
-	local e6=e5:Clone()
-	e6:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
-	c:RegisterEffect(e6)
 end
-function c26015009.disfilter(c,e)
-	return c:IsSetCard(0x615) and c:IsMonster() and c:IsReleasable()
+c26015009.listed_names={26015011} 
+function c26015009.resfilter(c,e)
+	return c:IsMonster()
 end
 function c26015009.discost(e,tp,eg,ep,ev,re,r,rp,chk)
-	local dg=Duel.GetMatchingGroup(c26015009.disfilter,tp,0,LOCATION_ONFIELD+LOCATION_HAND,nil,e)
-	if chk==0 then return Duel.CheckReleaseGroupCost(tp,c26015009.disfilter,1,true,aux.ReleaseCheckTarget,nil,dg) end
-	local sg=Duel.SelectReleaseGroupCost(tp,c26015009.disfilter,1,#dg,true,aux.ReleaseCheckTarget,nil,dg)
+	local tg=Duel.GetMatchingGroup(c26015009.resfilter,tp,LOCATION_MZONE+LOCATION_HAND,0,nil,e)
+	if chk==0 then return Duel.CheckReleaseGroupCost(tp,c26015009.resfilter,1,true,aux.ReleaseCheckTarget,nil,tg) end
+	local sg=Duel.SelectReleaseGroupCost(tp,c26015009.resfilter,1,99,true,aux.ReleaseCheckTarget,nil,tg)
 	e:SetLabelObject(sg)
 	sg:KeepAlive()
 	Duel.Release(sg,REASON_COST)
@@ -79,7 +77,7 @@ function c26015009.disop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
 	local g=e:GetLabelObject()
 	local dg=Duel.GetMatchingGroup(aux.TRUE,tp,LOCATION_MZONE,LOCATION_MZONE,c)
-	if g:CheckWithSumGreater(Card.GetLevel,7) and #dg>0 and Duel.SelectYesNo(tp,aux.Stringid(26015009,1)) then
+	if g:CheckWithSumGreater(Card.GetLevel,8) and #dg>0 and Duel.SelectYesNo(tp,aux.Stringid(26015009,1)) then
 		Duel.Destroy(dg,REASON_EFFECT)
 	end
 	if Duel.IsPlayerAffectedByEffect(tp,26015011) then
