@@ -42,10 +42,10 @@ end
 function c26012006.xyzop(e,tp,chk,mc)
 	local lab=mc:GetCode()
 	e:SetLabel(lab)
-	local g=Duel.GetMatchingGroup(c26012006.cfilter,tp,LOCATION_HAND+LOCATION_GRAVE,0,nil,mc)
-	if chk==0 then return Duel.GetFlagEffect(tp,26012006)==0 and aux.SelectUnselectGroup(g,e,tp,2,2,aux.rescon,0) end
+	local g=Duel.GetMatchingGroup(c26012006.cfilter,tp,LOCATION_GRAVE,0,nil,mc)
+	if chk==0 then return Duel.GetFlagEffect(tp,26012006)==0 and aux.SelectUnselectGroup(g,e,tp,2,2,c26012006.rescon,0) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_XMATERIAL)
-	sg=aux.SelectUnselectGroup(g,e,tp,2,2,aux.rescon,1,tp,aux.Stringid(26012006,1),nil,nil,true)
+	sg=aux.SelectUnselectGroup(g,e,tp,2,2,c26012006.rescon,1,tp,aux.Stringid(26012006,1),nil,nil,true)
 	if #sg>1 then
 		Duel.Overlay(mc,sg)
 		Duel.RegisterFlagEffect(tp,26012006,0,0,1)
@@ -82,12 +82,14 @@ end
 function c26012006.operation(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()
 	local oc=e:GetLabelObject()
-	if not e:GetHandler():CheckRemoveOverlayCard(tp,1,REASON_EFFECT) then return end
-	e:GetHandler():RemoveOverlayCard(tp,1,1,REASON_EFFECT)
-	if tc and tc:IsRelateToEffect(e) then
+	local c=e:GetHandler()
+	if not c:CheckRemoveOverlayCard(tp,1,REASON_EFFECT) then return end
+	c:RemoveOverlayCard(tp,1,1,REASON_EFFECT)
+	if c:IsRelateToEffect(e) and tc and tc:IsRelateToEffect(e) then
 		Duel.ChangeTargetCard(ev,Group.FromCards(tc))
-		if oc:IsRelateToEffect(e) and Duel.SelectYesNo(tp,aux.Stringid(26012006,2)) then
+		if oc:IsRelateToEffect(e) and c:CheckRemoveOverlayCard(tp,1,REASON_EFFECT) and Duel.SelectYesNo(tp,aux.Stringid(26012006,2)) then
 			Duel.BreakEffect()
+			c:RemoveOverlayCard(tp,1,1,REASON_EFFECT)
 			Duel.Remove(oc,POS_FACEDOWN,REASON_EFFECT)
 		end
 	end

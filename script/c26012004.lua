@@ -1,16 +1,15 @@
 --Protoquark Hadron
 function c26012004.initial_effect(c)
 	c:EnableReviveLimit()
-	Xyz.AddProcedure(c,nil,1,3,nil,nil,3,nil,false,c26012004.xyzcheck)
+	Xyz.AddProcedure(c,nil,1,3,c26012004.ovfilter,aux.Stringid(26012004,1),3,c26012004.xyzop,false,c26012004.xyzcheck)
 	--destroy target
 	local e1=Effect.CreateEffect(c)
 	e1:SetCategory(CATEGORY_DESTROY+CATEGORY_DAMAGE)
 	e1:SetDescription(aux.Stringid(26012004,0))
 	e1:SetType(EFFECT_TYPE_IGNITION)
 	e1:SetProperty(EFFECT_FLAG_CARD_TARGET)
-	e1:SetCountLimit(1)
 	e1:SetRange(LOCATION_MZONE)
-	e1:SetCountLimit(1,0,EFFECT_COUNT_CODE_SINGLE)
+	e1:SetCountLimit(1,26012004)
 	e1:SetCost(c26012004.cost)
 	e1:SetTarget(c26012004.target)
 	e1:SetOperation(c26012004.operation)
@@ -20,16 +19,9 @@ function c26012004.initial_effect(c)
 	e2:SetDescription(aux.Stringid(26012004,1))
 	e2:SetType(EFFECT_TYPE_QUICK_O)
 	e2:SetCode(EVENT_FREE_CHAIN)
+	e2:SetHintTiming(TIMING_END_PHASE,TIMINGS_CHECK_MONSTER+TIMING_MAIN_END+TIMING_BATTLE_START+TIMING_END_PHASE)
 	e2:SetCost(c26012004.qcost)
 	c:RegisterEffect(e2,false,REGISTER_FLAG_DETACH_XMAT)
-	--cannot be destroyed
-	local e3=Effect.CreateEffect(c)
-	e3:SetType(EFFECT_TYPE_SINGLE)
-	e3:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
-	e3:SetProperty(EFFECT_FLAG_SINGLE_RANGE)
-	e3:SetRange(LOCATION_MZONE)
-	e3:SetValue(1)
-	c:RegisterEffect(e3)
 	--to hand
 	local e3=Effect.CreateEffect(c)
 	e3:SetDescription(aux.Stringid(26012004,2))
@@ -37,10 +29,41 @@ function c26012004.initial_effect(c)
 	e3:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
 	e3:SetCode(EVENT_TO_GRAVE)
 	e3:SetProperty(EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DELAY+EFFECT_FLAG_CARD_TARGET)
+	e3:SetCountLimit(1,{26012004,1})
 	e3:SetCondition(c26012004.thcon)
 	e3:SetTarget(c26012004.thtg)
 	e3:SetOperation(c26012004.thop)
 	c:RegisterEffect(e3)
+end
+function c26012004.ovfilter(c,tp,lc)
+	return c:IsFaceup() and c:IsLevel(1) and c:IsSetCard(0x612)
+end
+function c26012004.cfilter(c)
+	return c:IsLevel(1) and c:IsSetCard(0x612) and not c:IsForbidden() 
+end
+function c26012004.rescon1(sg,e,tp,mg)
+	local attr=e:GetLabel()
+	return sg:GetClassCount(Card.GetAttribute)==#sg 
+	and not sg:IsExists(Card.IsAttribute,1,nil,attr)
+	and #sg:Filter(Card.IsLocation,nil,LOCATION_HAND)<2
+	and #sg:Filter(Card.IsLocation,nil,LOCATION_GRAVE)<2
+end
+function c26012004.xyzop(e,tp,chk,mc)
+	local c=e:GetHandler()
+	local attr=mc:GetAttribute()
+	e:SetLabel(attr)
+	local g=Duel.GetMatchingGroup(c26012004.cfilter,tp,LOCATION_HAND+LOCATION_GRAVE,0,nil)
+	if chk==0 then return Duel.GetFlagEffect(tp,26012004)==0 and aux.SelectUnselectGroup(g,e,tp,2,2,c26012004.rescon1,0) end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_XMATERIAL)
+	local sg=aux.SelectUnselectGroup(g,e,tp,2,2,c26012004.rescon1,1,tp,HINTMSG_XMATERIAL,nil,nil,true)
+	if #sg==2 then
+		sg:AddCard(mc)
+		--local pos=Duel.SelectPosition(tp,c,POS_FACEUP)
+		Duel.Overlay(c,sg)
+		Duel.ShuffleHand(tp)
+		Duel.RegisterFlagEffect(tp,26012004,RESET_PHASE+PHASE_END,0,1)
+		return true--, pos
+	else return false end
 end
 function c26012004.xyzcheck(g,tp,xyz)
 	return g:GetClassCount(Card.GetAttribute)==#g
@@ -56,21 +79,18 @@ function c26012004.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	e:SetLabel(#sg)
 	Duel.SendtoGrave(sg,REASON_COST)
 end
-function c26012004.rescon(sg,e,tp,mg)
+function c26012004.rescon2(sg,e,tp,mg)
 	return sg:IsExists(Card.IsCode,1,nil,26012003)
 end
 function c26012004.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	local g=c:GetOverlayGroup()
 	if chk==0 then return #g>0 and g:IsExists(Card.IsCode,1,nil,26012003) end
-	sg=aux.SelectUnselectGroup(g,e,tp,1,3,c26012004.rescon,1,tp,HINTMSG_DISCARD,c26012004.rescon)
+	sg=aux.SelectUnselectGroup(g,e,tp,1,3,c26012004.rescon2,1,tp,HINTMSG_DISCARD,c26012004.rescon2)
 	e:SetLabelObject(sg)
 	sg:KeepAlive()
 	e:SetLabel(#sg)
 	Duel.SendtoGrave(sg,REASON_COST)
-end
-function c26012004.ovfilter(c,e)
-	return c:IsSetCard(0x612) and not c:IsImmuneToEffect(e)
 end
 function c26012004.xfilter(c)
 	return c:IsFaceup() and c:IsType(TYPE_XYZ)
@@ -115,10 +135,9 @@ function c26012004.thcon(e,tp,eg,ep,ev,re,r,rp)
 end
 function c26012004.thtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsAbleToHand() end
-	local hc=Duel.GetFieldGroupCount(tp,LOCATION_HAND,0)
 	if chk==0 then return Duel.IsExistingTarget(c26012004.thfilter,tp,LOCATION_GRAVE,0,1,nil) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TODECK)
-	local g=Duel.SelectTarget(tp,c26012004.thfilter,tp,LOCATION_GRAVE,0,1,hc,nil)
+	local g=Duel.SelectTarget(tp,c26012004.thfilter,tp,LOCATION_GRAVE,0,1,1,nil)
 	Duel.SetOperationInfo(0,CATEGORY_TOHAND,g,1,0,0)
 end
 function c26012004.thop(e,tp,eg,ep,ev,re,r,rp)
@@ -126,9 +145,5 @@ function c26012004.thop(e,tp,eg,ep,ev,re,r,rp)
 	local sg=g:Filter(Card.IsRelateToEffect,nil,e)
 	if #sg>0 then
 		Duel.SendtoHand(sg,nil,REASON_EFFECT)
-		local og=Duel.GetOperatedGroup()
-		if #og<2 then return end
-		Duel.BreakEffect()
-		Duel.DiscardHand(tp,nil,#og-1,#og-1,REASON_EFFECT+REASON_DISCARD)
 	end
 end

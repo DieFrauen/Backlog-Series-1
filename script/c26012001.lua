@@ -1,103 +1,102 @@
 --Red Quarky
 function c26012001.initial_effect(c)
-	--self destroy
-	local e0=Effect.CreateEffect(c)
-	e0:SetType(EFFECT_TYPE_SINGLE)
-	e0:SetProperty(EFFECT_FLAG_SINGLE_RANGE)
-	e0:SetRange(LOCATION_MZONE)
-	e0:SetCode(EFFECT_SELF_DESTROY)
-	e0:SetCondition(c26012001.sdcon)
-	c:RegisterEffect(e0)
+	--search 2 discard 1
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(26012001,0))
-	e1:SetCategory(CATEGORY_SPECIAL_SUMMON+CATEGORY_ATKCHANGE)
-	e1:SetType(EFFECT_TYPE_IGNITION)
-	e1:SetRange(LOCATION_HAND+LOCATION_GRAVE)
+	e1:SetCategory(CATEGORY_SEARCH+CATEGORY_TOHAND+CATEGORY_HANDES)
+	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_F)
+	e1:SetProperty(EFFECT_FLAG_DELAY)
+	e1:SetCode(EVENT_SUMMON_SUCCESS)
 	e1:SetCountLimit(1,26012001)
-	e1:SetCost(c26012001.cost)
-	e1:SetTarget(c26012001.sptg)
-	e1:SetOperation(c26012001.spop)
+	e1:SetTarget(c26012001.thtg)
+	e1:SetOperation(c26012001.thop)
 	c:RegisterEffect(e1)
 	local e2=e1:Clone()
-	e2:SetType(EFFECT_TYPE_QUICK_O)
-	e2:SetHintTiming(TIMING_DAMAGE_STEP,TIMING_DAMAGE_STEP)
-	e2:SetProperty(EFFECT_FLAG_DAMAGE_STEP)
-	e2:SetCode(EVENT_FREE_CHAIN)
-	e2:SetCost(c26012001.qcost)
+	e2:SetCode(EVENT_FLIP_SUMMON_SUCCESS)
 	c:RegisterEffect(e2)
+	local e3=e1:Clone()
+	e3:SetCode(EVENT_SPSUMMON_SUCCESS)
+	c:RegisterEffect(e3)
+	--Xyz/Link Summon
+	local e4=Effect.CreateEffect(c)
+	e4:SetDescription(aux.Stringid(26012001,2))
+	e4:SetCategory(CATEGORY_SPECIAL_SUMMON|CATEGORY_DESTROY)
+	e4:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_F)
+	e4:SetProperty(EFFECT_FLAG_DELAY)
+	e4:SetCode(EVENT_SUMMON_SUCCESS)
+	e4:SetTarget(c26012001.sptg)
+	e4:SetOperation(c26012001.spop)
+	c:RegisterEffect(e4)
+	local e5=e4:Clone()
+	e5:SetCode(EVENT_FLIP_SUMMON_SUCCESS)
+	c:RegisterEffect(e5)
+	local e6=e4:Clone()
+	e6:SetCode(EVENT_SPSUMMON_SUCCESS)
+	c:RegisterEffect(e6)
 end
-function c26012001.sdfilter(c)
-	return c:IsFaceup() and (c:GetLevel()==1 or c:GetRank()==1 or c:GetLink()==1)
+c26012001.listed_series={0x612}
+function c26012001.thfilter(c)
+	return c:IsSetCard(0x612) and c:IsMonster() and c:IsAbleToHand()
 end
-function c26012001.sdcon(e)
-	return not Duel.IsExistingMatchingCard(c26012001.sdfilter,e:GetHandlerPlayer(),LOCATION_MZONE,0,1,e:GetHandler())
-end
-function c26012001.dsfilter(c)
-	return c:IsReleasable() and c:GetLevel()==1
-end
-function c26012001.cost(e,tp,eg,ep,ev,re,r,rp,chk)
+function c26012001.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
-	if chk==0 then return Duel.IsExistingMatchingCard(c26012001.dsfilter,tp,LOCATION_HAND+LOCATION_MZONE,0,1,c) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_RELEASE)
-	local sg=Duel.SelectMatchingCard(tp,c26012001.dsfilter,tp,LOCATION_HAND+LOCATION_MZONE,0,1,99,c)
-	e:SetLabelObject(sg)
-	e:SetLabel(#sg)
-	sg:KeepAlive()
-	Duel.SendtoGrave(sg,REASON_COST+REASON_RELEASE)
+	if chk==0 then return c:GetFlagEffect(26012001)==0 and Duel.IsExistingMatchingCard(c26012001.thfilter,tp,LOCATION_DECK,0,2,nil) end
+	e:GetHandler():RegisterFlagEffect(26012001,RESET_CHAIN,0,1)
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,2,tp,LOCATION_DECK)
+	Duel.SetOperationInfo(0,CATEGORY_HANDES,nil,0,tp,1)
 end
-function c26012001.resq(sg,e,tp,mg)
-	return sg:IsExists(Card.IsCode,1,nil,26012003)
+function c26012001.disfilter(c)
+	return c:IsLevel(1) and c:IsDiscardable()
 end
-function c26012001.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	local c=e:GetHandler()
-	local g=Duel.GetMatchingGroup(c26012001.dsfilter,tp,LOCATION_HAND+LOCATION_MZONE,0,c)
-	if chk==0 then return g:IsExists(Card.IsCode,1,nil,26012003) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DISCARD)
-	local sg=aux.SelectUnselectGroup(g,e,tp,1,99,c26012001.resq,1,tp,HINTMSG_RELEASE,c26012001.resq)
-	e:SetLabelObject(sg)
-	e:SetLabel(#sg)
-	sg:KeepAlive()
-	Duel.SendtoGrave(sg,REASON_COST+REASON_RELEASE)
-end
-function c26012001.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(1-tp) and chkc:IsFaceup() end
-	if chk==0 then return Duel.IsExistingTarget(Card.IsFaceup,tp,0,LOCATION_MZONE,1,nil) end
-	local gc=e:GetLabelObject()
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
-	local mc=1
-	if gc:IsExists(Card.IsCode,1,c,26012001) then mc=2 end
-	Duel.SelectTarget(tp,Card.IsFaceup,tp,0,LOCATION_MZONE,1,mc,nil)
-	if gc:IsExists(Card.IsCode,1,nil,26012002) then
-		Duel.SetChainLimit(c26012002.chlimit)
+function c26012001.thop(e,tp,eg,ep,ev,re,r,rp)
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
+	local g=Duel.SelectMatchingCard(tp,c26012001.thfilter,tp,LOCATION_DECK,0,2,2,nil)
+	if #g==2 and Duel.SendtoHand(g,nil,REASON_EFFECT)>0 then
+		Duel.ConfirmCards(1-tp,g)
+		Duel.ShuffleHand(tp)
+		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DISCARD)
+		local dg=Duel.SelectMatchingCard(tp,c26012001.disfilter,tp,LOCATION_HAND,0,1,1,nil,REASON_EFFECT)
+		if #dg>0 then
+			Duel.BreakEffect()
+			Duel.SendtoGrave(dg,REASON_DISCARD|REASON_EFFECT)
+		end
 	end
-	Duel.SetPossibleOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,2,0,0)
 end
-function c26012001.spfilter(c,e,tp)
-	return c:IsSetCard(0x612) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+function c26012001.xfilter(c,tc)
+	return c:IsRank(1) and c:IsXyzSummonable(tc)
+end
+function c26012001.lfilter(c,tc)
+	return c:IsLink(1) and c:IsLinkSummonable(tc)
+end
+function c26012001.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	local b1=Duel.IsExistingMatchingCard(c26012001.xfilter,tp,LOCATION_EXTRA,0,1,nil,c)
+	local b2=Duel.IsExistingMatchingCard(c26012001.lfilter,tp,LOCATION_EXTRA,0,1,nil,c)
+	if chk==0 then return c:GetFlagEffect(26012001)==0 and (b1 or b2) end
+	c:RegisterFlagEffect(26012001,RESET_CHAIN,0,1)
+	local op=Duel.SelectEffect(tp,
+		{b1,aux.Stringid(26012001,3)},
+		{b2,aux.Stringid(26012001,4)})
+	e:SetLabel(op)
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_EXTRA)
 end
 function c26012001.spop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	local tg=Duel.GetTargetCards(e)
-	for tc in tg:Iter() do
-		if tc:IsFaceup() and tc:IsRelateToEffect(e) then
-			local e1=Effect.CreateEffect(c)
-			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetCode(EFFECT_SET_ATTACK_FINAL)
-			e1:SetReset(RESET_EVENT+RESETS_STANDARD)
-			e1:SetValue(tc:GetAttack()/2)
-			tc:RegisterEffect(e1)
+	if c:IsControler(1-tp) or not c:IsRelateToEffect(e) or c:IsFacedown() then return end
+	local op=e:GetLabel()
+	if op==1 then
+		local g=Duel.GetMatchingGroup(c26012001.xfilter,tp,LOCATION_EXTRA,0,nil,c)
+		if #g>0 then
+			Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+			local sg=g:Select(tp,1,1,nil)
+			Duel.XyzSummon(tp,sg:GetFirst(),c)
 		end
-	end
-	local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
-	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) or ft<2 then return end
-	local g=Duel.GetMatchingGroup(aux.NecroValleyFilter(c26012001.spfilter),tp,LOCATION_GRAVE,0,c,e,tp)
-	local mx=math.min(ft-1,e:GetLabel())
-	if #g>=1 and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP) and Duel.SelectYesNo(tp,aux.Stringid(26012001,2)) then
-		local sg=g:Select(tp,1,mx,c)
-		sg:AddCard(c)
-		if #sg>0 then
-			Duel.BreakEffect()
-			Duel.SpecialSummon(sg,0,tp,tp,false,false,POS_FACEUP)
+	elseif op==2 then
+		local g=Duel.GetMatchingGroup(c26012001.lfilter,tp,LOCATION_EXTRA,0,nil,c)
+		if #g>0 then
+			Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+			local sg=g:Select(tp,1,1,nil)
+			Duel.LinkSummon(tp,sg:GetFirst(),c)
 		end
 	end
 end

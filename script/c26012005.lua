@@ -2,7 +2,7 @@
 function c26012005.initial_effect(c)
 	c:SetUniqueOnField(1,0,26012005)
 	c:EnableReviveLimit()
-	Xyz.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,0x612),1,2)
+	Xyz.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,0x612),1,2,nil,nil,2,nil,false,c26012005.xyzcheck)
 	-- Can use Link 2 monsters as Level 2 materials
 	local e0=Effect.CreateEffect(c)
 	e0:SetType(EFFECT_TYPE_FIELD)
@@ -31,7 +31,7 @@ function c26012005.initial_effect(c)
 	e2:SetDescription(aux.Stringid(26012005,1))
 	e2:SetType(EFFECT_TYPE_QUICK_O)
 	e2:SetCode(EVENT_FREE_CHAIN)
-	e2:SetHintTiming(TIMINGS_CHECK_MONSTER,TIMINGS_CHECK_MONSTER)
+	e2:SetHintTiming(TIMING_END_PHASE,TIMINGS_CHECK_MONSTER+TIMING_MAIN_END+TIMING_BATTLE_START+TIMING_END_PHASE)
 	e2:SetCost(c26012005.qcost)
 	c:RegisterEffect(e2,false,REGISTER_FLAG_DETACH_XMAT)
 	--search level 1
@@ -52,6 +52,10 @@ function c26012005.initial_effect(c)
 	e4:SetCondition(aux.TRUE)
 	e4:SetCondition(c26012005.thcon2)
 	c:RegisterEffect(e4)
+end
+function c26012005.xyzcheck(g,tp,xyz)
+	local mg=g:Filter(function(c) return not c:IsHasEffect(511001175) end,nil)
+	return mg:GetClassCount(Card.GetCode)==#mg
 end
 function c26012005.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local g=Duel.GetOverlayGroup(tp,1,0)
