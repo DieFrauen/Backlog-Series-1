@@ -21,6 +21,16 @@ function c26012006.initial_effect(c)
 	e2:SetTarget(c26012006.target)
 	e2:SetOperation(c26012006.operation)
 	c:RegisterEffect(e2)
+	--prevent targets from triggering
+	local e3=Effect.CreateEffect(c)
+	e3:SetType(EFFECT_TYPE_FIELD)
+	e3:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+	e3:SetCode(26012006)
+	e3:SetRange(LOCATION_MZONE)
+	e3:SetCondition(function(e)
+	return e:GetHandler():GetOverlayCount()>2 end)
+	e3:SetTargetRange(1,0)
+	c:RegisterEffect(e3)
 end
 function c26012006.xyzcheck(g,tp,xyz)
 	local mg=g:Filter(function(c) return not c:IsHasEffect(511001175) end,nil)
@@ -69,15 +79,26 @@ function c26012006.condition(e,tp,eg,ep,ev,re,r,rp)
 	return tc:IsOnField() and e:GetHandler():GetOverlayCount()>0
 end
 
-function c26012006.filter(c,ct)
-	return Duel.CheckChainTarget(ct,c)
+function c26012006.tgfilter(c,e,tp,ct)
+	return Duel.CheckChainTarget(ct,c) and (c:IsCanBeEffectTarget(e) or Duel.IsPlayerAffectedByEffect(tp,26012006))
 end
 function c26012006.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	local ct=ev
-	if chkc then return chkc:IsOnField() and c26012006.filter(chkc,ct) end
-	if chk==0 then return Duel.IsExistingTarget(c26012006.filter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,e:GetLabelObject(),ct) end
+	local label=Duel.GetFlagEffectLabel(0,26012006)
+	if label then
+		if ev==(label>>16) then ct=(label&0xffff) end
+	end
+	if chkc then return chkc:IsOnField() and c26012006.tgfilter(chkc,e,tp,ct) end
+	if chk==0 then return  Duel.IsExistingMatchingCard(c26012006.tgfilter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,e:GetLabelObject(),e,tp,ct) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TARGET)
-	Duel.SelectTarget(tp,c26012006.filter,tp,LOCATION_ONFIELD+LOCATION_GRAVE,LOCATION_ONFIELD+LOCATION_GRAVE,1,1,e:GetLabelObject(),ct)
+	local g=Duel.SelectMatchingCard(tp,c26012006.tgfilter,tp,LOCATION_ONFIELD+LOCATION_GRAVE,LOCATION_ONFIELD+LOCATION_GRAVE,1,1,e:GetLabelObject(),e,tp,ct)
+	Duel.SetTargetCard(g)
+	local val=ct+(ev+1<<16)
+	if label then
+		Duel.SetFlagEffectLabel(0,21501505,val)
+	else
+		Duel.RegisterFlagEffect(0,21501505,RESET_CHAIN,0,1,val)
+	end
 end
 function c26012006.operation(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()
@@ -87,7 +108,7 @@ function c26012006.operation(e,tp,eg,ep,ev,re,r,rp)
 	c:RemoveOverlayCard(tp,1,1,REASON_EFFECT)
 	if c:IsRelateToEffect(e) and tc and tc:IsRelateToEffect(e) then
 		Duel.ChangeTargetCard(ev,Group.FromCards(tc))
-		if oc:IsRelateToEffect(e) and c:CheckRemoveOverlayCard(tp,1,REASON_EFFECT) and Duel.SelectYesNo(tp,aux.Stringid(26012006,2)) then
+		if oc:IsRelateToEffect(e) and oc:IsAbleToRemove(tp,POS_FACEDOWN,REASON_EFFECT) and c:CheckRemoveOverlayCard(tp,1,REASON_EFFECT) and Duel.SelectYesNo(tp,aux.Stringid(26012006,2)) then
 			Duel.BreakEffect()
 			c:RemoveOverlayCard(tp,1,1,REASON_EFFECT)
 			Duel.Remove(oc,POS_FACEDOWN,REASON_EFFECT)

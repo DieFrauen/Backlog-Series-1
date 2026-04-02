@@ -95,18 +95,22 @@ end
 function c26012004.xfilter(c)
 	return c:IsFaceup() and c:IsType(TYPE_XYZ)
 end
+function c26012004.tgfilter(c,e,tp)
+	return c:IsFaceup() and (c:IsCanBeEffectTarget(e) or Duel.IsPlayerAffectedByEffect(tp,26012006))
+end
 function c26012004.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(1-tp) and chkc:IsFaceup() end
-	if chk==0 then return Duel.IsExistingTarget(nil,tp,0,LOCATION_MZONE,1,nil,e) end
+	if chk==0 then return Duel.IsExistingMatchingCard(c26012004.tgfilter,tp,0,LOCATION_MZONE,1,nil,e,tp) end
+	local lb=e:GetLabelObject()
+	local ct=1; if lb:IsExists(Card.IsCode,1,nil,26012001) then ct=2 end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TARGET)
-	local g1=Duel.SelectTarget(tp,nil,tp,0,LOCATION_MZONE,1,1,nil)
-	if e:GetLabelObject():IsExists(Card.IsCode,1,nil,26012001) then
-		Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(26012001,1))
-		local g2=Duel.SelectTarget(tp,nil,tp,0,LOCATION_ONFIELD,0,1,g1:GetFirst())
-		g1:Merge(g2)
+	local g=Duel.SelectMatchingCard(tp,c26012004.tgfilter,tp,0,LOCATION_MZONE,1,ct,nil,e,tp)
+	Duel.SetTargetCard(g)
+	Duel.SetOperationInfo(0,CATEGORY_DESTROY,g,#g,0,0)
+	local atk=g:Filter(Card.IsFaceup,nil):GetSum(Card.GetAttack)
+	if atk<0 then
+		Duel.SetOperationInfo(0,CATEGORY_DAMAGE,nil,0,1-tp,atk)
 	end
-	Duel.SetOperationInfo(0,CATEGORY_DESTROY,g1,#g1,0,0)
-	Duel.SetOperationInfo(0,CATEGORY_DAMAGE,nil,0,1-tp,0)
 	if e:GetLabelObject():IsExists(Card.IsCode,1,nil,26012002) then
 		Duel.SetChainLimit(c26012002.chlimit)
 	end

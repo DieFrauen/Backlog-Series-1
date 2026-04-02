@@ -36,16 +36,17 @@ function c26012002.initial_effect(c)
 end
 c26012002.listed_series={0x612}
 function c26012002.tgfilter(c)
-	return c:IsLevel(1) and c:IsMonster() and c:IsAbleToGrave()
+	return c:IsMonster() and c:IsAbleToGrave()
 end
 function c26012002.rescon(sg,e,tp,mg)
-	return #sg:Filter(Card.IsSetCard,nil,0x612)>1
+	return sg:GetClassCount(Card.GetAttribute)==#sg
+	and #sg:Filter(Card.IsSetCard,nil,0x612)>1
 	and #sg:Filter(Card.IsLocation,nil,LOCATION_HAND)<2
 	and #sg:Filter(Card.IsLocation,nil,LOCATION_ONFIELD)<2
-	and #sg:Filter(Card.IsLocation,nil,LOCATION_DECK)<2
+	and #sg:Filter(Card.IsLocation,nil,LOCATION_DECK|LOCATION_EXTRA)<2
 end
 function c26012002.tgtg(e,tp,eg,ep,ev,re,r,rp,chk)
-	local LOC=LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE 
+	local LOC=LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE|LOCATION_EXTRA 
 	local c=e:GetHandler()
 	local g=Duel.GetMatchingGroup(c26012002.tgfilter,tp,LOC,0,nil)
 	if chk==0 then return c:GetFlagEffect(26012002)==0 and aux.SelectUnselectGroup(g,e,tp,2,3,c26012002.rescon,0) end
@@ -56,7 +57,7 @@ function c26012002.disfilter(c)
 	return c:IsLevel(1) and c:IsDiscardable()
 end
 function c26012002.tgop(e,tp,eg,ep,ev,re,r,rp)
-	local LOC=LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE 
+	local LOC=LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE|LOCATION_EXTRA 
 	local g=Duel.GetMatchingGroup(c26012002.tgfilter,tp,LOC,0,nil)
 	local sg=aux.SelectUnselectGroup(g,e,tp,2,3,c26012002.rescon,1,tp,HINTMSG_TOGRAVE,nil,nil,true)
 	if #sg>1 then

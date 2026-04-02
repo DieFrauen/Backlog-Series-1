@@ -21,6 +21,35 @@ function c26012010.initial_effect(c)
 	e2b:SetType(EFFECT_TYPE_QUICK_O)
 	e2b:SetCode(EVENT_FREE_CHAIN)
 	c:RegisterEffect(e2b)
+	--immune to non-target effects
+	local e3=Effect.CreateEffect(c)
+	e3:SetType(EFFECT_TYPE_FIELD)
+	e3:SetCode(EFFECT_IMMUNE_EFFECT)
+	e3:SetRange(LOCATION_SZONE)
+	e3:SetTargetRange(LOCATION_MZONE,0)
+	e3:SetTarget(c26012010.immtg)
+	e3:SetValue(c26012010.immval)
+	c:RegisterEffect(e3)
+	--cannot disable summon
+	local e4=Effect.CreateEffect(c)
+	e4:SetType(EFFECT_TYPE_FIELD)
+	e4:SetCode(EFFECT_CANNOT_DISABLE_SPSUMMON)
+	e4:SetRange(LOCATION_SZONE)
+	e4:SetProperty(EFFECT_FLAG_IGNORE_RANGE+EFFECT_FLAG_SET_AVAILABLE)
+	e4:SetTarget(c26012010.sumval)
+	c:RegisterEffect(e4)
+	--tofield
+	local e5=Effect.CreateEffect(c)
+	e5:SetDescription(aux.Stringid(26046008,2))
+	e5:SetCategory(CATEGORY_LEAVE_GRAVE)
+	e5:SetType(EFFECT_TYPE_IGNITION)
+	e5:SetRange(LOCATION_GRAVE)
+	e5:SetCountLimit(1,26012010)
+	e5:SetLabelObject(e1)
+	e5:SetCost(c26012010.tfcost)
+	e5:SetTarget(c26012010.tftg)
+	e5:SetOperation(c26012010.tfop)
+	c:RegisterEffect(e5)
 end
 function c26012010.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local g=Duel.GetMatchingGroup(c26012010.resfilter,tp,LOCATION_HAND|LOCATION_MZONE,0,nil,tp)
@@ -59,4 +88,45 @@ function c26012010.operation(e,tp,eg,ep,ev,re,r,rp)
 	if e:GetHandler():HasFlagEffect(26012010) then return end
 	Duel.BreakEffect()
 	Duel.DiscardHand(tp,Card.IsSetCard,1,1,REASON_EFFECT|REASON_DISCARD,nil,0x612)
+end
+function c26012010.sumval(e,c)
+	return c:GetSummonType()&SUMMON_TYPE_XYZ|SUMMON_TYPE_LINK ~=0 and c:IsSetCard(0x612)
+end
+function c26012010.immtg(e,c)
+	local ch=Duel.GetCurrentChain()
+	local te=Duel.GetChainInfo(ch,CHAININFO_TRIGGERING_EFFECT)
+	if not te then return false end
+	local tc=te:GetHandler()
+	if c:IsRelateToBattle() and tc:IsRelateToBattle() then
+		local a,d=Duel.GetAttacker(),Duel.GetAttackTarget()
+		if a==tc and d==c then return false end
+	end
+	if not te:IsHasProperty(EFFECT_FLAG_CARD_TARGET) then return true end
+	local g=Duel.GetChainInfo(ch,CHAININFO_TARGET_CARDS)
+	return not g or not g:IsContains(c) and c:IsFaceup() and c:IsSetCard(0x612)
+end
+function c26012010.immval(e,te)
+	return te:IsActivated() and te:GetHandlerPlayer()~=e:GetHandlerPlayer()
+end
+function c26012010.tffilter(c)
+	return c:IsSetCard(0x612) and c:IsMonster() and c:IsAbleToDeck()
+end
+function c26012010.tfcost(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	local g=Duel.GetMatchingGroup(c26012010.tffilter,tp,LOCATION_GRAVE,0,nil)
+	if chk==0 then return g:GetClassCount(Card.GetAttribute)>2 end
+	local tg=aux.SelectUnselectGroup(g,e,tp,3,3,aux.dpcheck(Card.GetAttribute),1,tp,HINTMSG_TODECK)
+	Duel.HintSelection(tg)
+	Duel.SendtoDeck(tg,nil,2,REASON_COST)
+end
+function c26012010.tftg(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	if chk==0 then return e:GetLabelObject():IsActivatable(tp) end
+	Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,e:GetHandler(),1,0,0)
+end
+function c26012010.tfop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if c:IsRelateToEffect(e) and e:GetLabelObject():IsActivatable(tp) then
+		Duel.ActivateFieldSpell(c,e,tp,eg,ep,ev,re,r,rp)
+	end
 end

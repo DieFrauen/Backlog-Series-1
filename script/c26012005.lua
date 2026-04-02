@@ -1,6 +1,5 @@
---Quarkorium Meson
+--Quarkonium Meson
 function c26012005.initial_effect(c)
-	c:SetUniqueOnField(1,0,26012005)
 	c:EnableReviveLimit()
 	Xyz.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,0x612),1,2,nil,nil,2,nil,false,c26012005.xyzcheck)
 	-- Can use Link 2 monsters as Level 2 materials
@@ -42,6 +41,7 @@ function c26012005.initial_effect(c)
 	e3:SetCode(EVENT_TO_GRAVE)
 	e3:SetProperty(EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DELAY)
 	e3:SetCondition(c26012005.thcon)
+	e3:SetCountLimit(2,26012005)
 	e3:SetTarget(c26012005.thtg)
 	e3:SetOperation(c26012005.thop)
 	c:RegisterEffect(e3)
@@ -95,23 +95,19 @@ function c26012005.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	c26012005.meson(e,sg)
 	Duel.SendtoGrave(sg,REASON_COST)
 end
-function c26012005.filter(c)
-	return c:IsFaceup()
+function c26012005.tgfilter(c,e,tp)
+	return c:IsFaceup() and (c:IsCanBeEffectTarget(e) or Duel.IsPlayerAffectedByEffect(tp,26012006))
 end
 function c26012005.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_ONFIELD) and chkc:IsControler(1-tp) and chkc:IsFaceup() end
-	if chk==0 then return Duel.IsExistingTarget(Card.IsFaceup,tp,0,LOCATION_ONFIELD,1,nil) end
+	if chk==0 then return Duel.IsExistingMatchingCard(c26012005.tgfilter,tp,0,LOCATION_ONFIELD,1,nil,e,tp) end
+	local lb=e:GetLabelObject()
+	local ct=1; if lb:IsExists(Card.IsCode,1,nil,26012001) then ct=2 end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TODECK)
-	local g1=Duel.SelectTarget(tp,Card.IsFaceup,tp,0,LOCATION_ONFIELD,1,1,nil)
-	if e:GetLabelObject():IsExists(Card.IsCode,1,nil,26012001) then
-		Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(26012001,1))
-		local g2=Duel.SelectTarget(tp,nil,tp,0,LOCATION_ONFIELD,0,1,g1:GetFirst())
-		g1:Merge(g2)
-	end
-	local atk=g1:Filter(Card.IsFaceup,nil):GetSum(Card.GetAttack)
-	if atk<0 then atk=0 end
-	Duel.SetOperationInfo(0,CATEGORY_TODECK,g1,#g1,0,0)
-	if e:GetLabelObject():IsExists(Card.IsCode,1,nil,26012002) then
+	local g=Duel.SelectMatchingCard(tp,c26012005.tgfilter,tp,0,LOCATION_ONFIELD,1,ct,nil,e,tp)
+	Duel.SetTargetCard(g)
+	Duel.SetOperationInfo(0,CATEGORY_TODECK,g,#g,0,0)
+	if lb:IsExists(Card.IsCode,1,nil,26012002) then
 		Duel.SetChainLimit(c26012002.chlimit)
 	end
 end
@@ -131,7 +127,8 @@ function c26012005.thcon2(e,tp,eg,ep,ev,re,r,rp)
 	and re:GetLabel()==26012005
 end
 function c26012005.thfilter(c)
-	return c:GetLevel()==1 and c:IsMonster() and c:IsAbleToHand()
+	return c:IsLevel(1) and c:IsType(TYPE_EFFECT)
+	and c:IsMonster() and c:IsAbleToHand()
 end
 function c26012005.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(c26012005.thfilter,tp,LOCATION_DECK,0,1,nil) end

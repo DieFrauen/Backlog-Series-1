@@ -2,40 +2,27 @@
 function c26012009.initial_effect(c)
 	c:EnableReviveLimit()
 	Link.AddProcedure(c,c26012009.matfilter,1,1)
-	--Special Summon 1 Level 1 monster from the GY
+	--Special Summon "Green Quarky"
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(26012009,0))
 	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
-	e1:SetCode(EVENT_TO_GRAVE)
+	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
 	e1:SetCountLimit(1,26012009)
 	e1:SetProperty(EFFECT_FLAG_DELAY)
-	e1:SetCondition(c26012009.condition)
-	e1:SetCost(c26012009.cost)
-	e1:SetTarget(c26012009.atttg)
-	e1:SetOperation(c26012009.attop)
+	e1:SetCondition(function(e)return e:GetHandler():IsLinkSummoned()end)
+	e1:SetTarget(c26012009.sptg)
+	e1:SetOperation(c26012009.spop)
 	c:RegisterEffect(e1)
-	local e2=e1:Clone()
-	e2:SetCode(EVENT_REMOVE)
+	--Attach "Green Quarky"
+	local e2=Effect.CreateEffect(c)
+	e2:SetDescription(aux.Stringid(26012009,1))
+	e2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+	e2:SetCode(EVENT_TO_GRAVE)
+	e2:SetProperty(EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DELAY)
+	e2:SetCountLimit(1,{26012009,1})
+	e2:SetTarget(c26012009.atttg)
+	e2:SetOperation(c26012009.attop)
 	c:RegisterEffect(e2)
-	local e3=e1:Clone()
-	e3:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e3:SetCondition(function(e) return e:GetHandler():IsLinkSummoned() end)
-	c:RegisterEffect(e3)
-	--Attach "Red Quarky"
-	local e4=e1:Clone()
-	e4:SetDescription(aux.Stringid(26012009,1))
-	e4:SetCategory(CATEGORY_SPECIAL_SUMMON)
-	e4:SetTarget(c26012009.sptg)
-	e4:SetOperation(c26012009.spop)
-	c:RegisterEffect(e4)
-	local e5=e4:Clone()
-	e5:SetCode(EVENT_REMOVE)
-	c:RegisterEffect(e5)
-	local e6=e4:Clone()
-	e6:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e6:SetCondition(function(e) return e:GetHandler():IsLinkSummoned() end)
-	c:RegisterEffect(e6)
-
 end
 function c26012009.rfilter(c)
 	return c:IsLevel(1) and c:IsReleasable()
@@ -62,7 +49,7 @@ function c26012009.condition(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
 	local r1=c:IsReason(REASON_DISCARD)
 	local r2=c:IsReason(REASON_RELEASE)
-	local r3=(c:IsReason(REASON_COST) and re:GetHandler():IsSetCard(0x612)		   and re:IsActivated() and c:IsPreviousLocation(LOCATION_OVERLAY))
+	local r3=(c:IsReason(REASON_COST) and re:GetHandler():IsSetCard(0x612)   and re:IsActivated() and c:IsPreviousLocation(LOCATION_OVERLAY))
 	return r1 or r2 or r3
 end
 function c26012009.attfilter(c,e,tp)
@@ -83,29 +70,31 @@ function c26012009.attop(e,tp,eg,ep,ev,re,r,rp)
 	end
 end
 function c26012009.spfilter(c,e,tp,zone)
-	return c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP,tp,zone)
-end
-function c26012009.zones(e,tp)
-	local zone=0
-	local left_right=0
-	local lg=Duel.GetMatchingGroup(Card.IsType,tp,LOCATION_ONFIELD,0,nil,TYPE_LINK)
-	for tc in lg:Iter() do
-		left_right=tc:IsInMainMZone() and 1 or 0
-		zone=(zone|(tc:GetFreeLinkedZone()&ZONES_MMZ)) 
-	end
-return zone&ZONES_MMZ
+	return c:IsCode(26012003) and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP,tp,zone)
 end
 function c26012009.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	local zone=c26012009.zones(e,tp)
+	local LOC=LOCATION_HAND|LOCATION_GRAVE 
+	local zone=e:GetHandler():GetFreeLinkedZone()&ZONES_MMZ 
 	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
-		and Duel.IsExistingMatchingCard(c26012009.spfilter,tp,LOCATION_GRAVE,0,1,nil,e,tp,zone) end
+		and Duel.IsExistingMatchingCard(c26012009.spfilter,tp,LOC,0,1,nil,e,tp,zone) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
-	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,g,1,0,0)
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,0,LOC)
 end
 function c26012009.spop(e,tp,eg,ep,ev,re,r,rp)
-	local zone=c26012009.zones(e,tp)
-	local tc=Duel.SelectMatchingCard(tp,c26012009.spfilter,tp,LOCATION_GRAVE,0,1,1,nil,e,tp,zone):GetFirst()
-	if tc and zone>0 then 
-		Duel.SpecialSummon(tc,0,tp,tp,false,false,POS_FACEUP,zone)
+	local c=e:GetHandler()
+	if c:IsRelateToEffect(e) then zone=c:GetFreeLinkedZone()&ZONES_MMZ 
+	else return end
+	local tc=Duel.SelectMatchingCard(tp,c26012009.spfilter,tp,LOCATION_HAND|LOCATION_GRAVE,0,1,1,nil,e,tp,zone):GetFirst()
+	if tc and zone>0 and Duel.SpecialSummon(tc,0,tp,tp,false,false,POS_FACEUP,zone)~=0 then
+		local e1=Effect.CreateEffect(e:GetHandler())
+		e1:SetType(EFFECT_TYPE_FIELD)
+		e1:SetRange(LOCATION_MZONE)
+		e1:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
+		e1:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+		e1:SetAbsoluteRange(tp,1,0)
+		e1:SetTarget(function(e,c) return c:IsLocation(LOCATION_EXTRA)  and not (c:IsType(TYPE_XYZ) and c:IsRank(1)
+				  or c:IsType(TYPE_LINK) and c:IsLink(1)) end)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		tc:RegisterEffect(e1,true)
 	end
 end
