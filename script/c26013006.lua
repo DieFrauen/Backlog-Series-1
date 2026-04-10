@@ -1,109 +1,162 @@
---Echolon Vice-Emissor
+--Echolon Vice Receiver
 function c26013006.initial_effect(c)
-	--extra summon
+	--Special Summon
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(26013006,0))
-	e1:SetCategory(CATEGORY_SUMMON)
-	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
-	e1:SetProperty(EFFECT_FLAG_DELAY)
-	e1:SetCode(EVENT_SUMMON_SUCCESS)
+	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_TRIGGER_O)
+	e1:SetProperty(EFFECT_FLAG_DELAY|EFFECT_FLAG_CARD_TARGET)
+	e1:SetCode(EVENT_BECOME_TARGET)
+	e1:SetRange(LOCATION_HAND)
 	e1:SetCountLimit(1,26013006)
-	e1:SetTarget(c26013006.sumtg)
-	e1:SetOperation(c26013006.sumop)
+	e1:SetCondition(c26013006.spcon)
+	e1:SetTarget(c26013006.sptg)
+	e1:SetOperation(c26013006.spop)
 	c:RegisterEffect(e1)
-	local e2=e1:Clone()
-	e2:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
-	e2:SetProperty(0)
-	e2:SetCode(EVENT_CHAINING)
-	e2:SetRange(LOCATION_MZONE)
-	e2:SetCondition(c26013006.qcon)
-	e2:SetCost(c26013006.qcost)
+	local e1a=e1:Clone()
+	e1a:SetRange(LOCATION_GRAVE)
+	e1a:SetCost(Cost.PayLP(600))
+	e1a:SetCondition(c26013006.spcon2)
+	c:RegisterEffect(e1a)
+	--summon from GY
+	local e2=Effect.CreateEffect(c)
+	e2:SetDescription(aux.Stringid(26013006,1))
+	e2:SetCategory(CATEGORY_TOHAND)
+	e2:SetType(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O)
+	e2:SetProperty(EFFECT_FLAG_DELAY|EFFECT_FLAG_CARD_TARGET)
+	e2:SetCode(EVENT_SUMMON_SUCCESS)
+	e2:SetLabel(26013013)
+	e2:SetCountLimit(1,{26013006,1})
+	e2:SetTarget(c26013006.thtg)
+	e2:SetOperation(c26013006.thop)
 	c:RegisterEffect(e2)
-	--add tuner
+	local e2a=e2:Clone()
+	e2a:SetCode(EVENT_FLIP_SUMMON_SUCCESS)
+	c:RegisterEffect(e2a)
+	local e2b=e2:Clone()
+	e2b:SetCode(EVENT_SPSUMMON_SUCCESS)
+	c:RegisterEffect(e2b)
+	--Echolon
 	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(26013006,3))
-	e3:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
-	e3:SetCode(EVENT_BE_MATERIAL)
-	e3:SetCountLimit(1,{26013006,1})
-	e3:SetCondition(c26013006.tncon)
-	e3:SetTarget(c26013006.tntg)
-	e3:SetOperation(c26013006.tnop)
+	e3:SetDescription(aux.Stringid(26013006,2))
+	e3:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_QUICK_O)
+	e3:SetRange(LOCATION_MZONE)
+	e3:SetProperty(EFFECT_FLAG_CARD_TARGET)
+	e3:SetCode(EVENT_CHAINING)
+	e3:SetCountLimit(1,{26013006,2})
+	e3:SetTarget(c26013006.retg)
+	e3:SetOperation(c26013006.reop)
 	c:RegisterEffect(e3)
-	local e4=e3:Clone()
-	e4:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_QUICK_O)
-	e4:SetCode(EVENT_CHAINING)
-	e4:SetRange(LOCATION_GRAVE)
-	e4:SetCondition(c26013006.qcon)
-	e4:SetCost(c26013006.qcost)
-	c:RegisterEffect(e4)
+	local e3a=e3:Clone()
+	e3a:SetRange(LOCATION_GRAVE)
+	e3a:SetCost(Cost.PayLP(600))
+	e3a:SetCondition(c26013006.gycon)
+	c:RegisterEffect(e3a)
 end
 c26013006.listed_series={0x613}
-function c26013006.sumfilter(c)
-	return c:IsRace(RACE_PSYCHIC) and c:IsSummonable(true,nil)
+function c26013006.spfilter(c,e)
+	return c:IsFaceup() and c:IsSetCard(0x613)
 end
-function c26013006.qcon(e,tp,eg,ep,ev,re,r,rp)
-	local g=Duel.GetChainInfo(ev,CHAININFO_TARGET_CARDS)
-	return Duel.IsPlayerAffectedByEffect(tp,26013011)
-	and ((re:IsHasProperty(EFFECT_FLAG_CARD_TARGET)
-	and g and g:IsContains(e:GetHandler())
-	and re:GetHandler():IsSetCard(0x613)) or rp~=tp)
+function c26013006.spcon(e,tp,eg,ep,ev,re,r,rp)
+	return eg:IsExists(c26013006.spfilter,2,nil)
 end
-function c26013006.qcost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.GetFlagEffect(tp,26013011)==0 end
-	Duel.RegisterFlagEffect(tp,26013011,RESET_CHAIN,0,1)
+function c26013006.tgfilter(c,e)
+	return c:IsFaceup() and c:IsCanBeEffectTarget(e)
 end
-function c26013006.sumtg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.IsPlayerCanSummon(tp) end
-	Duel.SetOperationInfo(0,CATEGORY_SUMMON,nil,1,0,0)
+function c26013006.spcon2(e,tp,eg,ep,ev,re,r,rp)
+	return c26013006.spcon(e,tp,eg,ep,ev,re,r,rp)
+	and Duel.IsPlayerAffectedByEffect(tp,26013013)
 end
-function c26013006.sumop(e,tp,eg,ep,ev,re,r,rp)
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SUMMON)
-	local g=Duel.GetMatchingGroup(c26013006.sumfilter,tp,LOCATION_HAND,0,nil)
-	local p1=#g>0
-	local p2=true
-	if (p1 or p2) then
-		Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(26013006,1))
-		local op=Duel.SelectEffect(tp,
-		{p1,aux.Stringid(26013006,0)},
-		{p2,aux.Stringid(26013006,2)})
-		if op==1 then
-			local tc=g:Select(tp,1,1,nil):GetFirst()
-			Duel.Summon(tp,tc,true,nil)
-		end
-		if op==2 then
-			if Duel.GetFlagEffect(tp,26013006)~=0 then return end
-			local e1=Effect.CreateEffect(e:GetHandler())
-			e1:SetType(EFFECT_TYPE_FIELD)
-			e1:SetTargetRange(LOCATION_HAND+LOCATION_MZONE,0)
-			e1:SetCode(EFFECT_EXTRA_SUMMON_COUNT)
-			e1:SetDescription(aux.Stringid(26013006,0))
-			e1:SetTarget(aux.TargetBoolFunction(Card.IsRace,RACE_PSYCHIC))
-			e1:SetReset(RESET_PHASE+PHASE_END)
-			Duel.RegisterEffect(e1,tp)
-			Duel.RegisterFlagEffect(tp,26013006,RESET_PHASE+PHASE_END,0,1)
-		end
+function c26013006.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chkc then return false end
+	local c=e:GetHandler()
+	local g=Duel.GetMatchingGroup(c26013006.tgfilter,tp,LOCATION_ONFIELD,0,nil,e)
+	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 
+		and aux.SelectUnselectGroup(g,e,tp,1,1,c26013006.rescon1,0) and c:IsCanBeSpecialSummoned(e,0,tp,false,false) and Duel.GetFlagEffect(tp,26013006)<1 end
+	Duel.RegisterFlagEffect(tp,26013006,RESET_CHAIN,0,1)
+	local tg=aux.SelectUnselectGroup(g,e,tp,1,#g,c26013006.rescon1,1,tp,LOCATION_ONFIELD,c26013006.rescon1)
+	Duel.SetTargetCard(tg)
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,c,1,0,0)
+end
+function c26013006.resfilter(c)
+	return (c:IsSetCard(0x613) or c:IsType(TYPE_TUNER) and c:IsMonster())
+end
+function c26013006.rescon1(sg,e,tp,mg)
+	return sg:IsExists(c26013006.resfilter,1,nil)
+end
+function c26013006.spop(e,tp,eg,ep,ev,re,r,rp)
+	if Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end
+	local c=e:GetHandler()
+	if c:IsRelateToEffect(e) then
+		Duel.SpecialSummon(c,0,tp,tp,false,false,POS_FACEUP)
 	end
 end
-function c26013006.tncon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():IsLocation(LOCATION_GRAVE) and r==REASON_SYNCHRO 
+function c26013006.thfilter(c)
+	return c:IsSetCard(0x613) and c:IsAbleToHand()
 end
-function c26013006.tnfilter(c)
-	return c:IsFaceup() and c:IsSetCard(0x613) and not c:IsType(TYPE_TUNER)
+function c26013006.thtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	if chkc then return c26013006.thfilter(chkc,e,tp) and chkc:IsControler(tp) and chkc:IsLocation(LOCATION_GRAVE) end
+	if chk==0 then return Duel.IsExistingTarget(c26013006.thfilter,tp,LOCATION_GRAVE,0,1,nil,e,tp) and Duel.GetFlagEffect(tp,26013006)<1 end
+	Duel.RegisterFlagEffect(tp,26013006,RESET_CHAIN,0,1)
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
+	local tc=Duel.SelectTarget(tp,c26013006.thfilter,tp,LOCATION_GRAVE,0,1,1,nil,e,tp)
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,tc,1,0,0)
 end
-function c26013006.tntg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	if chkc then return chkc:IsControler(tp) and chkc:IsLocation(LOCATION_MZONE) and c26013006.tnfilter(chkc) end
-	if chk==0 then return Duel.IsExistingTarget(c26013006.tnfilter,tp,LOCATION_MZONE,0,1,nil) end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
-	Duel.SelectTarget(tp,c26013006.tnfilter,tp,LOCATION_MZONE,0,1,1,nil)
-end
-function c26013006.tnop(e,tp,eg,ep,ev,re,r,rp)
+function c26013006.thop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
 	local tc=Duel.GetFirstTarget()
-	if tc and tc:IsRelateToEffect(e) then
-		local e1=Effect.CreateEffect(e:GetHandler())
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_ADD_TYPE)
-		e1:SetValue(TYPE_TUNER)
-		e1:SetReset(RESET_EVENT+RESETS_STANDARD)
-		tc:RegisterEffect(e1)
+	if tc:IsRelateToEffect(e) then 
+		Duel.SendtoHand(tc,nil,REASON_EFFECT)
 	end
+end
+function c26013006.refilter(c)
+	return c:IsDefenseAbove(0) and c:IsFaceup() and c:IsOnField()
+end
+function c26013006.retg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	if chkc==0 then return false end
+	local g=c26013006.GROUP(ev):Filter(c26013006.refilter,nil)
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,2,2,c26013006.rescon2,0) and Duel.GetFlagEffect(tp,26013006)<1 end
+	Duel.RegisterFlagEffect(tp,26013006,RESET_CHAIN,0,1)
+	local tg=aux.SelectUnselectGroup(g,e,tp,2,2,c26013006.rescon2,1,tp,HINTMSG_TARGET,c26013006.rescon2)
+	Duel.SetTargetCard(tg)
+	Duel.SetOperationInfo(0,CATEGORY_DEFCHANGE,g,#g,tp,0)
+end
+function c26013006.rescon2(sg,e,tp,mg)
+	return sg:GetClassCount(Card.GetBaseDefense)==2
+end
+function c26013006.reop(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.GetTargetCards(e)
+	if #g~=2 then return end
+	local tc=g:GetFirst()
+	local tk=g:GetNext()
+	local at1,at2=tc:GetBaseDefense(),tk:GetBaseDefense()
+	local e1=Effect.CreateEffect(e:GetHandler())
+	e1:SetType(EFFECT_TYPE_SINGLE)
+	e1:SetCode(EFFECT_SET_BASE_DEFENSE)
+	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+	e1:SetValue(at2)
+	e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+	tc:RegisterEffect(e1)
+	local e1=Effect.CreateEffect(e:GetHandler())
+	e1:SetType(EFFECT_TYPE_SINGLE)
+	e1:SetCode(EFFECT_SET_BASE_DEFENSE)
+	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+	e1:SetValue(at1)
+	e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+	tk:RegisterEffect(e1)
+end
+function c26013006.GROUP(ev)
+	local sg=Group.CreateGroup()
+	for i=1,ev do
+		local te,tg=Duel.GetChainInfo(i,CHAININFO_TRIGGERING_EFFECT,CHAININFO_TARGET_CARDS)
+		if te:IsHasProperty(EFFECT_FLAG_CARD_TARGET) and tg then
+			sg:Merge(tg)
+		end
+	end
+	return sg
+end
+function c26013006.gycon(e,tp,eg,ep,ev,re,r,rp)
+	local g=c26013006.GROUP(ev)
+	return #g>0 and Duel.IsPlayerAffectedByEffect(tp,26013013)
+	and g:IsContains(e:GetHandler())
 end

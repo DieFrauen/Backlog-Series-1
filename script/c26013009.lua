@@ -1,21 +1,33 @@
---Echolon Supersonic Buster
+--Echolon Bitcrusher
 function c26013009.initial_effect(c)
-	--synchro summon
-	Synchro.AddProcedure(c,nil,1,99,nil,1,99)
 	c:EnableReviveLimit()
-	--mat check
+	Synchro.AddProcedure(c,nil,1,1,nil,1,99)
+	--Send to the GY and decrease Level
 	local e1=Effect.CreateEffect(c)
-	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_CONTINUOUS)
-	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_DELAY)
+	e1:SetDescription(aux.Stringid(26013009,0))
+	e1:SetCategory(CATEGORY_TOGRAVE)
+	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+	e1:SetProperty(EFFECT_FLAG_DELAY)
 	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e1:SetCondition(c26013009.tncon)
-	e1:SetOperation(c26013009.tnop)
+	e1:SetCountLimit(1,26013009)
+	e1:SetLabel(1)
+	e1:SetCondition(c26013009.cond)
+	e1:SetTarget(c26013009.tgtg)
+	e1:SetOperation(c26013009.tgop)
 	c:RegisterEffect(e1)
-	local e2=Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_SINGLE)
-	e2:SetCode(EFFECT_MATERIAL_CHECK)
-	e2:SetValue(c26013009.valcheck)
-	e2:SetLabelObject(e1)
+	local e0=Effect.CreateEffect(c)
+	e0:SetType(EFFECT_TYPE_SINGLE)
+	e0:SetCode(EFFECT_MATERIAL_CHECK)
+	e0:SetValue(c26013009.valcheck)
+	e0:SetLabelObject(e1)
+	c:RegisterEffect(e0)
+	local e2=e1:Clone()
+	e2:SetDescription(aux.Stringid(26013009,1))
+	e2:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e2:SetProperty(EFFECT_FLAG_DELAY|EFFECT_FLAG_CARD_TARGET)
+	e2:SetCountLimit(1,{26013009,1})
+	e2:SetTarget(c26013009.sptg)
+	e2:SetOperation(c26013009.spop)
 	c:RegisterEffect(e2)
 end
 function c26013009.mat(c)
@@ -23,79 +35,79 @@ function c26013009.mat(c)
 end
 function c26013009.valcheck(e,c)
 	local g=c:GetMaterial()
-	local g1=g:FilterCount(Card.IsType,nil,TYPE_SYNCHRO)
-	local g2=g:FilterCount(c26013009.mat,nil)
-	local g3=g:FilterCount(Card.IsType,nil,TYPE_TUNER)
-	local val=0
-	if g1>0 then
-		val=val+(g1*1000)
-	end
-	if g2==#g then
-		val=val+100
-	end
-	if g3>1 then
-		val=val+(g3)
-	end
-	e:GetLabelObject():SetLabel(val)
+	local v=#g
+	if v==#g:Filter(c26013009.mat,nil) then v=v*2 end
+	e:GetLabelObject():SetLabel(v)
 end
-function c26013009.tncon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_SYNCHRO) and e:GetLabel()~=0
+function c26013009.cond(e,tp,eg,ep,ev,re,r,rp)
+	return e:GetHandler():IsSynchroSummoned()
 end
-function c26013009.tnop(e,tp,eg,ep,ev,re,r,rp)
+function c26013009.tgfilter(c,val)
+	return c:IsAbleToGrave() and c:IsLevelBelow(val)
+	and (c:IsType(TYPE_TUNER|TYPE_SYNCHRO) or c:IsSetCard(0x613))
+end
+function c26013009.tgtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local LOC =LOCATION_DECK|LOCATION_EXTRA 
 	local c=e:GetHandler()
-	local val=e:GetLabel()
-	Duel.Hint(HINT_CARD,tp,26013009)
-	--negate targeting effects
-	if val>=1000 then
-		local tgv=0
-		while val>=1000 do
-			val=val-1000
-			tgv=tgv+1
-		end
-		local e1=Effect.CreateEffect(c)
-		e1:SetDescription(aux.Stringid(26013009,2))
-		e1:SetProperty(EFFECT_FLAG_CLIENT_HINT)
-		e1:SetType(EFFECT_TYPE_CONTINUOUS+EFFECT_TYPE_FIELD)
-		e1:SetRange(LOCATION_MZONE)
-		e1:SetCode(EVENT_CHAIN_SOLVING)
-		e1:SetOperation(c26013009.disop)
-		e1:SetLabel(tgv)
-		e1:SetReset(RESET_EVENT+RESETS_STANDARD_DISABLE)
-		c:RegisterEffect(e1)
-		aux.DoubleSnareValidity(c,LOCATION_MZONE)
-	end
-	--indestructible
-	if val>=100 then
-		val=val-100
-		local e2=Effect.CreateEffect(c)
-		e2:SetDescription(aux.Stringid(26013009,0))
-		e2:SetProperty(EFFECT_FLAG_CLIENT_HINT)
-		e2:SetType(EFFECT_TYPE_SINGLE)
-		e2:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
-		e2:SetValue(1)
-		e2:SetReset(RESET_EVENT+RESETS_STANDARD_DISABLE)
-		c:RegisterEffect(e2)
-		local e3=e2:Clone()
-		e3:SetDescription(aux.Stringid(26013009,1))
-		e3:SetCode(EFFECT_INDESTRUCTABLE_BATTLE)
-		c:RegisterEffect(e3)
-	end
-	local e4=Effect.CreateEffect(c)
-	e4:SetDescription(aux.Stringid(26013009,3))
-	e4:SetType(EFFECT_TYPE_SINGLE)
-	e4:SetCode(EFFECT_EXTRA_ATTACK)
-	e4:SetReset(RESET_EVENT+RESETS_STANDARD_DISABLE)
-	e4:SetValue(val-1)
-	c:RegisterEffect(e4)
+	if chk==0 then return Duel.IsExistingMatchingCard(c26013009.tgfilter,tp,LOC,0,1,nil,e:GetLabel()) and c:GetFlagEffect(26013009)<1 end
+	c:RegisterFlagEffect(26013009,RESET_CHAIN,0,1)
+	Duel.SetOperationInfo(0,CATEGORY_TOGRAVE,nil,1,tp,LOC)
 end
-function c26013009.disop(e,tp,eg,ep,ev,re,r,rp)
-	local rc=re:GetHandler()
-	if not re:IsHasProperty(EFFECT_FLAG_CARD_TARGET) or rp==tp then return end
-	local tg=Duel.GetChainInfo(ev,CHAININFO_TARGET_CARDS)
-	if #tg<=e:GetLabel() then
-		Duel.Hint(HINT_CARD,tp,26013009)
-		if Duel.NegateEffect(ev) and rc:IsRelateToEffect(re) then
-			Duel.Destroy(rc,REASON_EFFECT)
+function c26013009.tgop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if not (c:IsRelateToEffect(e) and c:IsFaceup()) then return end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+	local g=Duel.SelectMatchingCard(tp,c26013009.tgfilter,tp,LOCATION_DECK|LOCATION_EXTRA,0,1,1,nil,e:GetLabel())
+	if #g>0 then Duel.SendtoGrave(g,REASON_EFFECT)  end
+end
+function c26013009.spcheck(sg,e,tp,mg)
+	local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
+	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) then ft=1 end
+	return sg:GetClassCount(Card.GetCode)==#sg
+	and #sg:Filter(Card.IsLocation,nil,LOCATION_GRAVE)<=ft
+end
+function c26013009.spfilter(c,e,tp)
+	return c:IsSetCard(0x613) and c:IsCanBeEffectTarget(e)
+	and not c:IsCode(e:GetHandler():GetCode())
+	and ((c:IsOnField() and not c:IsType(TYPE_TUNER))
+	or (c:IsLocation(LOCATION_GRAVE) and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP)))
+end
+function c26013009.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	local g=Duel.GetMatchingGroup(c26013009.spfilter,tp,LOCATION_MZONE+LOCATION_GRAVE,0,nil,e,tp)
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,1,2,c26013009.spcheck,0) and c:GetFlagEffect(26013009)<1 end
+	c:RegisterFlagEffect(26013009,RESET_CHAIN,0,1)
+	local sg=aux.SelectUnselectGroup(g,e,tp,1,2,c26013009.spcheck,1,tp,HINTMSG_SPSUMMON,c26013009.spcheck)
+	Duel.SetTargetCard(sg)
+	local gg=sg:Filter(Card.IsLocation,nil,LOCATION_GRAVE)
+	if #gg>0 then
+		Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,gg,#gg,tp,0)
+	end
+end
+function c26013009.spop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	local g=Duel.GetTargetCards(e)
+	if #g<1 then return end
+	local g1,g2=g:Split(Card.IsOnField,nil)
+	local tc=g1:GetFirst()
+	for tc in aux.Next(g1) do
+		if tc:IsFaceup() and not tc:IsType(TYPE_TUNER) then
+			local e1=Effect.CreateEffect(c)
+			e1:SetType(EFFECT_TYPE_SINGLE)
+			e1:SetCode(EFFECT_ADD_TYPE)
+			e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+			e1:SetValue(TYPE_TUNER)
+			e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+			tc:RegisterEffect(e1)
 		end
+	end
+	if #g2>0 then
+		local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
+		if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) then ft=1 end
+		if #g2>ft then
+			Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+			g2=g2:Select(tp,ft,ft,nil)
+		end
+		Duel.SpecialSummon(g2,0,tp,tp,true,false,POS_FACEUP)
 	end
 end

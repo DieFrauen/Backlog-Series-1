@@ -1,92 +1,141 @@
---Echolon Teleforce Buster
+--Echolon Transceiver
 function c26013014.initial_effect(c)
-	--synchro summon
-	Synchro.AddProcedure(c,nil,1,1,aux.FilterBoolFunctionEx(Card.IsType,TYPE_TUNER),1,99)
-	c:EnableReviveLimit()
-	--mat check
+	--activate
 	local e1=Effect.CreateEffect(c)
-	e1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_CONTINUOUS)
-	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_DELAY)
-	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e1:SetCondition(c26013014.tncon)
-	e1:SetOperation(c26013014.tnop)
+	e1:SetDescription(aux.Stringid(26013014,0))
+	e1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)
+	e1:SetType(EFFECT_TYPE_ACTIVATE)
+	e1:SetCode(EVENT_FREE_CHAIN)
+	e1:SetCountLimit(1,26013014,EFFECT_COUNT_CODE_OATH)
+	e1:SetOperation(c26013014.activate)
 	c:RegisterEffect(e1)
+	--Cannot target
 	local e2=Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_SINGLE)
-	e2:SetCode(EFFECT_MATERIAL_CHECK)
-	e2:SetValue(c26013014.valcheck)
-	e2:SetLabelObject(e1)
+	e2:SetType(EFFECT_TYPE_FIELD)
+	e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE)
+	e2:SetCode(EFFECT_CANNOT_BE_EFFECT_TARGET)
+	e2:SetRange(LOCATION_SZONE)
+	e2:SetTargetRange(LOCATION_MZONE|LOCATION_GRAVE,0)
+	e2:SetTarget(c26013014.untg)
+	e2:SetValue(aux.tgoval)
 	c:RegisterEffect(e2)
+	--return 1 of 2 targets to Hand
 	local e3=Effect.CreateEffect(c)
-	e3:SetDescription(aux.Stringid(26013014,2))
-	e3:SetProperty(EFFECT_FLAG_CLIENT_HINT)
-	e3:SetType(EFFECT_TYPE_CONTINUOUS+EFFECT_TYPE_FIELD)
-	e3:SetRange(LOCATION_MZONE)
-	e3:SetCode(EVENT_CHAIN_SOLVING)
-	e3:SetOperation(c26013014.disop)
+	e3:SetDescription(aux.Stringid(26013014,1))
+	e3:SetCategory(CATEGORY_TOHAND)
+	e3:SetType(EFFECT_TYPE_IGNITION)
+	e3:SetProperty(EFFECT_FLAG_CARD_TARGET)
+	e3:SetRange(LOCATION_SZONE)
+	e3:SetTarget(c26013014.thtg)
+	e3:SetOperation(c26013014.thop)
 	c:RegisterEffect(e3)
-	aux.DoubleSnareValidity(c,LOCATION_MZONE)
-	
+	--property change
+	local e4=Effect.CreateEffect(c)
+	e4:SetDescription(aux.Stringid(26013014,2))
+	e4:SetProperty(EFFECT_FLAG_CARD_TARGET)
+	e4:SetType(EFFECT_TYPE_IGNITION)
+	e4:SetRange(LOCATION_SZONE)
+	e4:SetTarget(c26013014.retg)
+	e4:SetOperation(c26013014.reop)
+	c:RegisterEffect(e4)
 end
-function c26013014.mat(c)
-	return c:GetOriginalType()&TYPE_TUNER ==0
+function c26013014.untg(e,c)
+	local sg=c26013014.GROUP(Duel.GetCurrentChain())
+	return #sg>0 and sg:IsContains(c)
 end
-function c26013014.valcheck(e,c)
-	local g=c:GetMaterial()
-	local g1=g:FilterCount(Card.IsType,nil,TYPE_SYNCHRO)
-	local g2=g:FilterCount(c26013009.mat,nil)
-	local val=0
-	if g1==#g then
-		val=val+10
-	end
-	if g2==#g then
-		val=val+1
-	end
-	e:GetLabelObject():SetLabel(val)
+function c26013014.thfilter(c)
+	return c:IsSetCard(0x613) and c:IsMonster() and c:IsAbleToHand()
 end
-function c26013014.tncon(e,tp,eg,ep,ev,re,r,rp)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_SYNCHRO) and e:GetLabel()~=0
-end
-function c26013014.tnop(e,tp,eg,ep,ev,re,r,rp)
+function c26013014.activate(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	Duel.Hint(HINT_CARD,tp,26013014)
-	--indestructible
-	if e:GetLabel()~=10 then
-		local e1=Effect.CreateEffect(c)
-		e1:SetDescription(aux.Stringid(26013014,0))
-		e1:SetProperty(EFFECT_FLAG_CLIENT_HINT)
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_CANNOT_BE_EFFECT_TARGET)
-		e1:SetTargetRange(LOCATION_MZONE,0)
-		e1:SetValue(aux.tgoval)
-		e1:SetReset(RESET_EVENT+RESETS_STANDARD)
-		c:RegisterEffect(e1)
-	end
-	--indestructible
-	if e:GetLabel()~=01 then
-		local e2=Effect.CreateEffect(c)
-		e2:SetType(EFFECT_TYPE_SINGLE)
-		e2:SetCode(EFFECT_INDESTRUCTABLE_BATTLE)
-		e2:SetTargetRange(LOCATION_MZONE,0)
-		e2:SetValue(1)
-		e2:SetReset(RESET_EVENT+RESETS_STANDARD)
-		c:RegisterEffect(e2)
-		local e3=e2:Clone()
-		e3:SetDescription(aux.Stringid(26013014,1))
-		e3:SetProperty(EFFECT_FLAG_CLIENT_HINT)
-		e3:SetCode(EFFECT_INDESTRUCTABLE_EFFECT)
-		c:RegisterEffect(e3)
+	if not c:IsRelateToEffect(e) then return end
+	local g=Duel.GetMatchingGroup(c26013014.thfilter,tp,LOCATION_DECK,0,nil)
+	if #g>0 and c:GetFlagEffect(26013014)<1 and Duel.SelectYesNo(tp,aux.Stringid(26013014,0)) then
+		c:RegisterFlagEffect(26013014,RESETS_STANDARD_PHASE_END,0,1)
+		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
+		local sg=g:Select(tp,1,1,nil)
+		Duel.SendtoHand(sg,nil,REASON_EFFECT)
+		Duel.ConfirmCards(1-tp,sg)
 	end
 end
-function c26013014.disop(e,tp,eg,ep,ev,re,r,rp)
-	local rc=re:GetHandler()
-	local ex1=(Duel.GetOperationInfo(ev,CATEGORY_NEGATE) or re:IsHasCategory(CATEGORY_NEGATE))
-	local ex2=(Duel.GetOperationInfo(ev,CATEGORY_DISABLE) or re:IsHasCategory(CATEGORY_DISABLE))
-	local ex3=(Duel.GetOperationInfo(ev,CATEGORY_DISABLE_SUMMON) or re:IsHasCategory(CATEGORY_DISABLE_SUMMON))
-	if ex1 or ex2 or ex3 then
-		Duel.Hint(HINT_CARD,tp,26013014)
-		if Duel.NegateEffect(ev) and rc:IsRelateToEffect(re) then
-			Duel.Remove(rc,POS_FACEDOWN,REASON_EFFECT)
+function c26013014.rthfilter(c)
+	return c:IsSetCard(0x613) and c:IsFaceup()
+end
+function c26013014.thtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local c=e:GetHandler()
+	if chkc then return false end
+	local LOC = LOCATION_ONFIELD|LOCATION_GRAVE 
+	local g=Duel.GetMatchingGroup(c26013014.rthfilter,tp,LOC,0,c,e)
+	if chk==0 then return aux.SelectUnselectGroup(g,e,tp,2,2,c26013014.rescon,0) and c:GetFlagEffect(26013014)<1 end
+	c:RegisterFlagEffect(26013014,RESETS_STANDARD_PHASE_END,0,1)
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
+	local tg=aux.SelectUnselectGroup(g,e,tp,2,2,c26013014.rescon,1,tp,HINTMSG_TARGET,c26013014.rescon)
+	Duel.SetTargetCard(tg)
+	Duel.SetPossibleOperationInfo(0,CATEGORY_TOHAND,tg,1,0,0)
+	if tg:Filter(Card.IsLocation,nil,LOCATION_GRAVE) then
+		Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,tg,1,0,0)
+	end
+end
+function c26013014.rescon(sg,e,tp,mg)
+	return sg:GetClassCount(Card.GetLocation)==2
+	and sg:IsExists(Card.IsAbleToHand,1,nil)
+end
+function c26013014.thop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	local g=Duel.GetTargetCards(e):Filter(aux.NecroValleyFilter,nil)
+	local tg=g:Select(tp,1,1,nil)
+	if #tg>0 then 
+		Duel.SendtoHand(tg,nil,REASON_EFFECT)
+	end
+end
+function c26013014.GROUP(ev)
+	local sg=Group.CreateGroup()
+	for i=1,ev do
+		local te,tg=Duel.GetChainInfo(i,CHAININFO_TRIGGERING_EFFECT,CHAININFO_TARGET_CARDS)
+		if te:IsHasProperty(EFFECT_FLAG_CARD_TARGET) and tg then
+			sg:Merge(tg)
 		end
+	end
+	return sg
+end
+
+function c26013014.tgfilter(c)
+	return c:IsFaceup() and not c:IsType(TYPE_TUNER)
+end
+function c26013014.retg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+	local c=e:GetHandler()
+	if chkc==0 then return false end
+	if chk==0 then return Duel.IsExistingTarget(c26013014.tgfilter,tp,LOCATION_MZONE,0,1,nil) and c:GetFlagEffect(26013014)<1 end
+	c:RegisterFlagEffect(26013014,RESETS_STANDARD_PHASE_END,0,1)
+	Duel.SelectTarget(tp,c26013014.tgfilter,tp,LOCATION_MZONE,0,1,1,nil)
+end
+function c26013014.rescon(sg,e,tp,mg)
+	return sg:GetClassCount(Card.GetCode)>1
+end
+function c26013014.reop(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	local tc=Duel.GetFirstTarget()
+	if tc:IsRelateToEffect(e) then
+		local e1=Effect.CreateEffect(c)
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetCode(EFFECT_ADD_TYPE)
+		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e1:SetValue(TYPE_TUNER)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		tc:RegisterEffect(e1)
+		--Cannot Special Summon non-Synchro monsters from Extra Deck
+		local e2=Effect.CreateEffect(c)
+		e2:SetType(EFFECT_TYPE_FIELD)
+		e2:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+		e2:SetRange(LOCATION_MZONE)
+		e2:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
+		e2:SetAbsoluteRange(tp,1,0)
+		e2:SetTarget(function(_,c) return c:IsLocation(LOCATION_EXTRA) and not c:IsType(TYPE_SYNCHRO|TYPE_TUNER) end)
+		e2:SetReset(RESET_EVENT|RESETS_STANDARD)
+		tc:RegisterEffect(e2,true)
+		--Lizard check
+		local e3=aux.createContinuousLizardCheck(c,LOCATION_MZONE,function(_,c) return not c:IsOriginalType(TYPE_SYNCHRO|TYPE_TUNER) end)
+		e3:SetReset(RESET_EVENT|RESETS_STANDARD)
+		tc:RegisterEffect(e3,true)
 	end
 end
