@@ -28,6 +28,7 @@ function c26013010.initial_effect(c)
 	e3:SetCondition(c26013010.qcon)
 	c:RegisterEffect(e3)
 end
+c26013010.listed_series={0x613}
 function c26013010.mat(c)
 	return c:GetOriginalType()&TYPE_TUNER ==0
 end

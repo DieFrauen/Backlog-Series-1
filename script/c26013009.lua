@@ -30,6 +30,7 @@ function c26013009.initial_effect(c)
 	e2:SetOperation(c26013009.spop)
 	c:RegisterEffect(e2)
 end
+c26013009.listed_series={0x613}
 function c26013009.mat(c)
 	return c:GetOriginalType()&TYPE_TUNER ==0
 end

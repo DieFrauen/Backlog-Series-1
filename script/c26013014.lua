@@ -39,6 +39,7 @@ function c26013014.initial_effect(c)
 	e4:SetOperation(c26013014.reop)
 	c:RegisterEffect(e4)
 end
+c26013014.listed_series={0x613}
 function c26013014.untg(e,c)
 	local sg=c26013014.GROUP(Duel.GetCurrentChain())
 	return #sg>0 and sg:IsContains(c)

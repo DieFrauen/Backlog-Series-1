@@ -19,6 +19,7 @@ function c26013011.initial_effect(c)
 	e2:SetLabelObject(e1)
 	c:RegisterEffect(e2)
 end
+c26013011.listed_series={0x613}
 function c26013011.mat(c)
 	return c:GetOriginalType()&TYPE_TUNER ==0
 end

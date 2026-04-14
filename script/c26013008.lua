@@ -44,6 +44,7 @@ function c26013008.initial_effect(c)
 	e3a:SetCondition(c26013008.gycon)
 	c:RegisterEffect(e3a)
 end
+c26013008.listed_series={0x613}
 function c26013008.mat(c)
 	return c:GetOriginalType()&TYPE_TUNER ==0
 end

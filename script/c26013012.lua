@@ -25,6 +25,7 @@ function c26013012.initial_effect(c)
 	e2:SetOperation(c26013012.excop)
 	c:RegisterEffect(e2)
 end
+c26013015.listed_series={0x613}
 function c26013012.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(Card.IsDiscardable,tp,LOCATION_HAND,0,1,e:GetHandler()) end
 	Duel.DiscardHand(tp,Card.IsDiscardable,1,99,REASON_COST|REASON_DISCARD)

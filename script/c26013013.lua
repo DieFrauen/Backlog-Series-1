@@ -36,6 +36,24 @@ function c26013013.initial_effect(c)
 	e4:SetCost(aux.TRUE)
 	e4:SetOperation(c26013013.costop)
 	c:RegisterEffect(e4)
+	--Special Summon Limitation
+	local e3=Effect.CreateEffect(c)
+	e3:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
+	e3:SetType(EFFECT_TYPE_FIELD)
+	e3:SetRange(LOCATION_FZONE)
+	e3:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+	e3:SetTargetRange(1,0)
+	e3:SetTarget(c26013013.sumlimit)
+	c:RegisterEffect(e3)
+	--ClockLizard check
+	aux.addContinuousLizardCheck(c,LOCATION_FZONE,c26013013.lizfilter)
+end
+c26013013.listed_series={0x613}
+function c26013013.sumlimit(e,c,sump,sumtype,sumpos,targetp)
+	return c:IsLocation(LOCATION_EXTRA) and not c:IsType(TYPE_SYNCHRO|TYPE_TUNER)
+end
+function c26013013.lizfilter(e,c)
+	return not c:IsOriginalType(TYPE_SYNCHRO|TYPE_TUNER)
 end
 function c26013013.spfilter(c,e)
 	return c:IsFaceup() and c:IsSetCard(0x613)
